@@ -43,6 +43,8 @@
 #include "utils/print.h"
 #include "utils/quat_ops.h"
 
+using namespace ov_core;
+
 namespace ov_msckf {
 
 /**
@@ -63,6 +65,7 @@ struct VioManagerOptions {
     print_and_load_noise(parser);
     print_and_load_state(parser);
     print_and_load_trackers(parser);
+    print_and_load_vehicle_updates(parser);
   }
 
   // ESTIMATOR ===============================
@@ -479,6 +482,200 @@ struct VioManagerOptions {
     PRINT_DEBUG("  - imu feq: %.2f\n", sim_freq_imu);
     PRINT_DEBUG("  - min feat dist: %.2f\n", sim_min_feature_gen_distance);
     PRINT_DEBUG("  - max feat dist: %.2f\n", sim_max_feature_gen_distance);
+  }
+
+  /// VEHICLE UPDATES OVVU ========================
+
+  enum VehicleUpdateMode {
+    // Basic OpenVINS algorithm without vehicle updates
+    VEHICLE_UPDATE_NONE,
+    // Basic OpenVINS algorithm with speed update, propagating the state at every speed measurement
+    VEHICLE_UPDATE_SPEED_PROPAGATE,
+    // Basic OpenVINS algorithm with steering update, propagating the state at every steering measurement
+    VEHICLE_UPDATE_STEERING_PROPAGATE,
+    // Basic OpenVINS algorithm with speed and steering update, propagating the state at every speed and steering measurement
+    VEHICLE_UPDATE_VEHICLE_PROPAGATE,
+    // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using single track model
+    VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK,
+    // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using differential drive model
+    VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL,
+    // When the mode is not known we exit the program
+    VEHICLE_UPDATE_UNKNOWN,
+  };
+
+  /// Choose OpenVINS baseline as default
+  VehicleUpdateMode vehicle_update_mode = VEHICLE_UPDATE_NONE;
+
+  /// Save the string for easier printing
+  std::string vehicle_update_mode_string = "VEHICLE_UPDATE_NONE";
+
+  VehicleUpdateMode vehicle_update_mode_from_string(const std::string &mode) {
+    // vehicle_update_mode_string = mode;
+    if (mode == "VEHICLE_UPDATE_NONE") {
+      return VEHICLE_UPDATE_NONE;
+    } else if (mode == "VEHICLE_UPDATE_SPEED_PROPAGATE") {
+      return VEHICLE_UPDATE_SPEED_PROPAGATE;
+    } else if (mode == "VEHICLE_UPDATE_STEERING_PROPAGATE") {
+      return VEHICLE_UPDATE_STEERING_PROPAGATE;
+    } else if (mode == "VEHICLE_UPDATE_VEHICLE_PROPAGATE") {
+      return VEHICLE_UPDATE_VEHICLE_PROPAGATE;
+    } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK") {
+      return VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK;
+    } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL") {
+      return VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL;
+    } else {
+      return VEHICLE_UPDATE_UNKNOWN;
+    }
+  }
+
+  /// Convenience flag for using Ackermann drive measurements
+  bool use_ackermann_drive_measurements = false;
+
+  bool use_wheel_speeds_measurements = false;
+
+  /// Whether to use second order yaw in the calculation of the preintegrated odometry model,
+  /// see eq (24)-(31) of Visual-Inertial-Wheel Odometry with Online Calibration
+  bool use_yaw_odom_second_order = true;
+
+  /// Whether to use second order yaw in the Jacobian derivation of the preintegrated odometry model
+  bool use_yaw_jacobi_second_order = false;
+
+  /// Speed update
+
+  enum SpeedUpdateMode {
+    /// Body frame's velocity is going be updated with the measurement [vehicle_speed, 0, 0],
+    /// assumes speed_y and speed_z to be 0 for ground vehicles
+    SPEED_UPDATE_VECTOR,
+    /// Body frame's velocity is going be updated with the measurement [vehicle_speed] only for the x-component
+    SPEED_UPDATE_X,
+    SPEED_UPDATE_UNKNOWN,
+  };
+
+  /// Choose vector variant which assumes speed_y and speed_z to be 0 for ground vehicles
+  SpeedUpdateMode speed_update_mode = SPEED_UPDATE_VECTOR;
+
+  /// Save the string for easier printing
+  std::string speed_update_mode_string = "SPEED_UPDATE_VECTOR";
+
+  SpeedUpdateMode speed_update_mode_from_string(const std::string &mode) {
+    speed_update_mode_string = mode;
+    if (mode == "SPEED_UPDATE_VECTOR") {
+      return SPEED_UPDATE_VECTOR;
+    } else if (mode == "SPEED_UPDATE_X") {
+      return SPEED_UPDATE_X;
+    } else {
+      return SPEED_UPDATE_UNKNOWN;
+    }
+  }
+
+  /// Vehicle speed x noise (m/s)
+  double sigma_speed_x = 0.01;
+
+  /// Vehicle zero speed y noise (m/s)
+  double sigma_zero_speed_y = 0.1;
+
+  /// Vehicle zero speed y noise (m/s)
+  double sigma_zero_speed_z = 0.05;
+
+  /// Vehicle speed chi2 multiplier
+  double vehicle_speed_chi2_multiplier = 1.0;
+
+  /// Steering update
+
+  /// Steering angle variance noise (rad)
+  double sigma_steering_angle = 1.0 * M_PI / 180;
+
+  /// Vehicle steering chi2 multiplier
+  double vehicle_steering_chi2_multiplier = 1.0;
+
+  /// Steering updates at very slow speeds lead to performance decrease (m/s)
+  double steering_angle_update_min_speed = 3.0;
+
+  /// In certain cases you only have access to the steering wheel angle information. If the steering wheel angle is supplied in the
+  /// Ackermann drive message we need to calculate the effective steering angle like so:
+  /// steering_angle = steering_wheel_angle / steering_ratio
+  bool ackermann_drive_msg_contains_steering_wheel_angle = false;
+
+  /// Steering ratio for steering wheel angle to steering angle conversion
+  double steering_ratio = 15.2;
+
+  /// Maximum steering wheel angle for which a steering update is performed (deg)
+  double max_steering_angle = 100.0;
+
+  /// Other vehicle updates parameters
+
+  /// External Calibration between odometry and IMU frame
+  Eigen::Matrix<double, 7, 1> pose_OtoI;
+
+  /// Wheel base (m)
+  double wheel_base = 2.791;
+
+  /// Track length (m) between both rear wheels
+  double track_length = 1.568;
+
+  /**
+   * @brief This function will load print out all vehicle updates settings loaded.
+   * This allows for visual checking that everything was loaded properly from ROS/CMD parsers.
+   *
+   * @param parser If not null, this parser will be used to load our parameters
+   */
+  void print_and_load_vehicle_updates(const std::shared_ptr<ov_core::YamlParser> &parser = nullptr) {
+    PRINT_DEBUG("VEHICLE UPDATES PARAMETERS:\n");
+    if (parser != nullptr) {
+      parser->parse_config("vehicle_update_mode", vehicle_update_mode_string);
+      vehicle_update_mode = vehicle_update_mode_from_string(vehicle_update_mode_string);
+      // Set the convenience flag for handling Ackermann drive measurements ASTODO
+      if (vehicle_update_mode == VEHICLE_UPDATE_SPEED_PROPAGATE || vehicle_update_mode == VEHICLE_UPDATE_STEERING_PROPAGATE ||
+          vehicle_update_mode == VEHICLE_UPDATE_VEHICLE_PROPAGATE || vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK) {
+        use_ackermann_drive_measurements = true;
+      }
+      // Set convenience flag for handling wheel speeds measurements
+      if (vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL) {
+        use_wheel_speeds_measurements = true;
+      }
+
+      // Extrinsics between IMU and body frame
+      Eigen::Matrix4d T_i_b = Eigen::Matrix4d::Identity();
+      parser->parse_external("relative_config_imu", "imu0", "T_i_b", T_i_b);
+      pose_OtoI.block(0, 0, 4, 1) = rot_2_quat(T_i_b.block(0, 0, 3, 3));
+      pose_OtoI.block(4, 0, 3, 1) = T_i_b.block(0, 3, 3, 1);
+
+      parser->parse_config("use_yaw_odom_second_order", use_yaw_odom_second_order, false);
+      parser->parse_config("use_yaw_jacobi_second_order", use_yaw_jacobi_second_order, false);
+      parser->parse_config("speed_update_mode", speed_update_mode_string, false);
+      speed_update_mode = speed_update_mode_from_string(speed_update_mode_string);
+      parser->parse_config("sigma_speed_x", sigma_speed_x, false);
+      parser->parse_config("sigma_zero_speed_y", sigma_zero_speed_y, false);
+      parser->parse_config("sigma_zero_speed_z", sigma_zero_speed_z, false);
+      parser->parse_config("vehicle_speed_chi2_multiplier", vehicle_speed_chi2_multiplier, false);
+      parser->parse_config("sigma_steering_angle", sigma_steering_angle, false);
+      parser->parse_config("vehicle_steering_chi2_multiplier", vehicle_steering_chi2_multiplier, false);
+      // parser->parse_config("pose_OtoI", pose_OtoI); ASTODO parse this correctly
+      parser->parse_config("wheel_base", wheel_base, false);
+      parser->parse_config("steering_angle_update_min_speed", steering_angle_update_min_speed, false);
+      parser->parse_config("ackermann_drive_msg_contains_steering_wheel_angle", ackermann_drive_msg_contains_steering_wheel_angle, false);
+      parser->parse_config("steering_ratio", steering_ratio, false);
+      parser->parse_config("max_steering_angle", max_steering_angle, false);
+      parser->parse_config("track_length", track_length, false);
+    }
+    PRINT_DEBUG("  - vehicle_update_mode: %s\n", vehicle_update_mode_string.c_str());
+    PRINT_DEBUG("  - pose_OtoI quat %.6f %.6f %.6f %.6f\n", pose_OtoI[0], pose_OtoI[1], pose_OtoI[2], pose_OtoI[3]);
+    PRINT_DEBUG("  - pose_OtoI translation %.6f %.6f %.6f\n", pose_OtoI[4], pose_OtoI[5], pose_OtoI[6]);
+    PRINT_DEBUG("  - use_yaw_odom_second_order: %d\n", use_yaw_odom_second_order);
+    PRINT_DEBUG("  - use_yaw_jacobi_second_order: %d\n", use_yaw_jacobi_second_order);
+    PRINT_DEBUG("  - speed_update_mode: %s\n", speed_update_mode_string.c_str());
+    PRINT_DEBUG("  - sigma_speed_x: %.6f\n", sigma_speed_x);
+    PRINT_DEBUG("  - sigma_zero_speed_y: %.6f\n", sigma_zero_speed_y);
+    PRINT_DEBUG("  - sigma_zero_speed_z: %.6f\n", sigma_zero_speed_z);
+    PRINT_DEBUG("  - vehicle_speed_chi2_multiplier: %.6f\n", vehicle_speed_chi2_multiplier);
+    PRINT_DEBUG("  - ackermann_drive_msg_contains_steering_wheel_angle: %d\n", ackermann_drive_msg_contains_steering_wheel_angle);
+    PRINT_DEBUG("  - sigma_steering_angle: %.6f\n", sigma_steering_angle);
+    PRINT_DEBUG("  - vehicle_steering_chi2_multiplier: %.6f\n", vehicle_steering_chi2_multiplier);
+    PRINT_DEBUG("  - wheel_base: %.6f\n", wheel_base);
+    PRINT_DEBUG("  - steering_angle_update_min_speed: %.6f\n", steering_angle_update_min_speed);
+    PRINT_DEBUG("  - steering_ratio: %.6f\n", steering_ratio);
+    PRINT_DEBUG("  - max_steering_angle: %.6f\n", max_steering_angle);
+    PRINT_DEBUG("  - track_length: %.6f\n", track_length);
   }
 };
 

@@ -38,6 +38,7 @@ VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false),
   params.print_and_load_noise();
   params.print_and_load_state();
   params.print_and_load_trackers();
+  params.print_and_load_vehicle_updates(); // OVVU
 
   // This will globally set the thread count we will use
   // -1 will reset to the system default threading (usually the num of cores)
@@ -84,6 +85,10 @@ VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false),
     if (state->_options.max_slam_features > 0) {
       of_statistics << "slam update,slam delayed,";
     }
+    // OVVU: Also track timing of vehicle updates
+    if (params.vehicle_update_mode != params.VEHICLE_UPDATE_NONE && params.vehicle_update_mode != params.VEHICLE_UPDATE_UNKNOWN) {
+      of_statistics << "vehicle updates,";
+    }
     of_statistics << "re-tri & marg,total" << std::endl;
   }
 
@@ -129,6 +134,11 @@ VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false),
 
   // Feature initializer for active tracks
   active_tracks_initializer = std::make_shared<FeatureInitializer>(params.featinit_options);
+
+  // OVVU: If we are using vehicle updates, then create the updater
+  if (params.vehicle_update_mode != params.VEHICLE_UPDATE_NONE && params.vehicle_update_mode != params.VEHICLE_UPDATE_UNKNOWN) {
+    updaterVehicle = std::make_shared<UpdaterVehicle>(params, propagator);
+  }
 }
 
 void VioManager::feed_measurement_simulation(double timestamp, const std::vector<int> &camids,
@@ -186,6 +196,19 @@ void VioManager::feed_measurement_simulation(double timestamp, const std::vector
     message.masks.push_back(cv::Mat::zeros(cv::Size(width, height), CV_8UC1));
   }
   do_feature_propagate_update(message);
+}
+
+void VioManager::feed_measurement_ackermann_drive(const ov_core::AckermannDriveData &message) {
+  if (is_initialized_vio && params.use_ackermann_drive_measurements && updaterVehicle != nullptr) {
+    ackermann_drive_queue.push_back(message);
+    updaterVehicle->feed_ackermann_drive(message);
+  }
+}
+
+void VioManager::feed_measurement_wheel_speeds(const ov_core::WheelSpeedsData &message) {
+  if (is_initialized_vio && params.use_wheel_speeds_measurements && updaterVehicle != nullptr) {
+    updaterVehicle->feed_wheel_speeds(message);
+  }
 }
 
 void VioManager::track_image_and_update(const ov_core::CameraData &message_const) {
@@ -273,7 +296,78 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   // NOTE: if the state is already at the given time (can happen in sim)
   // NOTE: then no need to prop since we already are at the desired timestep
   if (state->_timestamp != message.timestamp) {
-    propagator->propagate_and_clone(state, message.timestamp);
+
+    // OVVU: Instead of propagating and cloning at the same time, we split those two steps due to the updating logic of vehicle updates with
+    // addtional state propagations between two camera times.
+
+    // OVVU: Save some values for preintegrated update
+    double last_cam_timestamp = state->_timestamp;
+    double last_prop_time_offset = propagator->get_last_prop_time_offset();
+
+    // OVVU: perform vehicle updates by propagating the state at sensor frequency of ackermann drive messages
+    if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_PROPAGATE ||
+        params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING_PROPAGATE ||
+        params.vehicle_update_mode == params.VEHICLE_UPDATE_VEHICLE_PROPAGATE) {
+      while (updaterVehicle != nullptr && !ackermann_drive_queue.empty()) {
+        // double time1 = message.timestamp + state->_calib_dt_CAMtoIMU->value()(0);
+        // double time0 = ackermann_drive_queue.front().timestamp;
+        // OVVU: Perform vehicle updates when max clones are reached for stability reasons
+        if ((int)state->_clones_IMU.size() == state->_options.max_clone_size &&
+            ackermann_drive_queue.front().timestamp < message.timestamp) {
+          // OVVU: When the latest ackermann drive time is lower than the IMU time, we can propagate and do the update. Otherwise we only
+          // perform the update without propagating because, we would have to extrapolate IMU measurements into the future.
+          if (ackermann_drive_queue.front().timestamp < message.timestamp + state->_calib_dt_CAMtoIMU->value()(0)) {
+            propagator->propagate(state, ackermann_drive_queue.front().timestamp, false);
+            PRINT_DEBUG("Propagating and updating vehicle at ts %.9f\n" RESET, ackermann_drive_queue.front().timestamp);
+          } else {
+            PRINT_DEBUG("Skipping propagation, but updating vehicle at ts %.9f\n" RESET, ackermann_drive_queue.front().timestamp);
+          }
+          // Perform speed udpate
+          if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_PROPAGATE ||
+              params.vehicle_update_mode == params.VEHICLE_UPDATE_VEHICLE_PROPAGATE) {
+            if (params.speed_update_mode == params.SPEED_UPDATE_VECTOR) {
+              updaterVehicle->update_speed_vector(state, ackermann_drive_queue.front());
+            } else if (params.speed_update_mode == params.SPEED_UPDATE_X) {
+              updaterVehicle->update_speed_x(state, ackermann_drive_queue.front());
+            }
+          }
+          // Perform steering udpate
+          if (params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING_PROPAGATE ||
+              params.vehicle_update_mode == params.VEHICLE_UPDATE_VEHICLE_PROPAGATE) {
+            updaterVehicle->update_steering(state, ackermann_drive_queue.front());
+          }
+        }
+        // In any case we pop the latest ackermann drive message
+        ackermann_drive_queue.pop_front();
+        if (!ackermann_drive_queue.empty()) {
+          if (ackermann_drive_queue.front().timestamp > message.timestamp) {
+            PRINT_DEBUG(MAGENTA "Breaking out of propagation cycle\n" RESET);
+            break;
+          }
+        }
+      }
+    }
+
+    // OVVU: After potential vehicle updates propagate the filter to the current camera time
+    propagator->propagate(state, message.timestamp, true);
+
+    propagator->clone(state);
+
+    // OVVU: add all preintegrated vehicle updates at this point
+    auto time_tmp = boost::posix_time::microsec_clock::local_time();
+    // Perform preintegrated vehicle update after cloning the propagated state
+    if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK &&
+        (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
+      updaterVehicle->update_vehicle_preintegrated(state, last_cam_timestamp, last_prop_time_offset);
+      time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp).total_microseconds() * 1e-6;
+    }
+    // Perform preintegrated vehicle update using differential drive model after cloning the propagated state
+    if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL &&
+        (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
+      updaterVehicle->update_vehicle_preintegrated_differential(state, last_cam_timestamp, last_prop_time_offset);
+      time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp).total_microseconds() * 1e-6;
+    }
+    // time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp).total_microseconds() * 1e6;
   }
   rT3 = boost::posix_time::microsec_clock::local_time();
 
@@ -534,7 +628,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   double time_track = (rT2 - rT1).total_microseconds() * 1e-6;
   double time_prop = (rT3 - rT2).total_microseconds() * 1e-6;
   double time_msckf = (rT4 - rT3).total_microseconds() * 1e-6;
-  double time_slam_update = (rT5 - rT4).total_microseconds() * 1e-6;
+  double time_slam_update = (rT5 - rT4).total_microseconds() * 1e-6; // ASTODO implement correct timing handling of VU
   double time_slam_delay = (rT6 - rT5).total_microseconds() * 1e-6;
   double time_marg = (rT7 - rT6).total_microseconds() * 1e-6;
   double time_total = (rT7 - rT1).total_microseconds() * 1e-6;

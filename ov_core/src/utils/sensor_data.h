@@ -78,6 +78,43 @@ struct CameraData {
   }
 };
 
+// OVVU
+/**
+ * @brief Struct for single wheel speeds measurement for 4 wheel vehicle (m/s)
+ */
+struct WheelSpeedsData {
+
+  /// Timestamp of the reading
+  double timestamp;
+
+  /// Wheel speed data per wheel in meter per second
+  double wheel_front_left;
+  double wheel_front_right;
+  double wheel_rear_left;
+  double wheel_rear_right;
+
+  /// Sort function to allow for using STL containers
+  bool operator<(const WheelSpeedsData &other) const { return timestamp < other.timestamp; }
+};
+
+/**
+ * @brief Struct for single AckermannDrive measurement
+ *
+ */
+struct AckermannDriveData {
+
+  /// Timestamp of the reading
+  double timestamp;
+
+  /// Speed reading in forward direction (m/s)
+  double speed;
+
+  /// Steering angle (rad)
+  double steering_angle;
+
+  bool operator<(const AckermannDriveData &other) const { return timestamp < other.timestamp; }
+};
+
 } // namespace ov_core
 
 #endif // OV_CORE_SENSOR_DATA_H

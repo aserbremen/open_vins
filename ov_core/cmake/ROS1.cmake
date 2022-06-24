@@ -1,14 +1,25 @@
 cmake_minimum_required(VERSION 3.3)
 
 # Find ROS build system
-find_package(catkin QUIET COMPONENTS roscpp rosbag sensor_msgs cv_bridge)
+find_package(catkin QUIET COMPONENTS roscpp rosbag sensor_msgs cv_bridge rospy message_generation) 
+
+add_message_files( # OVVU
+    FILES
+    WheelPulses.msg
+    WheelSpeeds.msg
+)
+
+generate_messages( # OVVU
+    DEPENDENCIES
+    std_msgs
+)
 
 # Describe ROS project
 option(ENABLE_ROS "Enable or disable building with ROS (if it is found)" ON)
 if (catkin_FOUND AND ENABLE_ROS)
     add_definitions(-DROS_AVAILABLE=1)
     catkin_package(
-            CATKIN_DEPENDS roscpp rosbag sensor_msgs cv_bridge
+            CATKIN_DEPENDS roscpp rosbag sensor_msgs cv_bridge rospy message_generation # OVVU
             INCLUDE_DIRS src/
             LIBRARIES ov_core_lib
     )

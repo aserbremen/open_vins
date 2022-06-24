@@ -1,0 +1,16 @@
+%YAML:1.0
+
+# OVVU
+cam0:
+  T_imu_cam: #rotation from camera to IMU R_CtoI, position of camera in IMU p_CinI
+    - [-0.0238716, -0.0135840, 0.9996228, 1.684931553840600]
+    - [-0.9996552, 0.0112591, -0.0237194, -0.106270080983639]
+    - [-0.0109326, -0.9998444, -0.0138480, 0.730407963752700]
+    - [0.0, 0.0, 0.0, 1.0]
+  cam_overlaps: []
+  camera_model: pinhole
+  distortion_coeffs: [-0.3387030377529924, 0.2723756579038385, 0.0, 0.0, -0.1577472481868392]
+  distortion_model: radtan
+  intrinsics: [928.509516552, 928.509516552, 511.2304835, 321.15481325] #fu, fv, cu, cv
+  resolution: [960, 604]
+  rostopic: /cam0/image_raw

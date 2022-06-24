@@ -1,0 +1,130 @@
+<launch>
+
+    <!-- OVVU -->
+    <!-- what config we are going to run (should match folder name) -->
+    <arg name="verbosity"   default="DEBUG" /> <!-- ALL, DEBUG, INFO, WARNING, ERROR, SILENT -->
+    <arg name="config"      default="atcity" /> <!-- euroc_mav, tum_vi, rpng_aruco -->
+    <arg name="config_path" default="$(find ov_msckf)/../config/$(arg config)/estimator_config.yaml" />
+
+    <!-- mono or stereo and what ros bag to play -->
+    <arg name="max_cameras" default="1" />
+    <arg name="use_stereo"  default="false" />
+    <arg name="bag_start"   default="0" /> <!-- v1-2: 0, mh1: 40, mh2: 35, mh3: 17.5, mh4-5: 15 -->
+    <arg name="bag_durr"    default="-1" />
+    <arg name="dataset"     default="eschborn2" /> <!-- V1_01_easy, V1_02_medium, V2_02_medium -->
+    <arg name="bag"         default="/data/datasets/conti/2021-04-20_Parking_and_atCity/2021-04-20-15-10-59-607_F-TZ_9900_CamLoc_Eschborn/eschborn2.bag" />
+
+    <!-- saving trajectory path and timing information -->
+    <arg name="dosave"      default="true" />
+    <arg name="dotime"      default="true" />
+    <arg name="path_est"    default="/tmp/traj_estimate.txt" />
+    <arg name="path_rpg_est" default="/tmp/stamped_traj_estimate.tx" />
+    <arg name="path_time"   default="/tmp/traj_timing.txt" />
+    <arg name="dovisualize" default="true" />
+
+    <!-- if we should viz the groundtruth -->
+    <arg name="dolivetraj"  default="false" />
+    <arg name="path_gt"     default="$(find ov_data)/$(arg config)/$(arg dataset).txt" />
+
+    <!-- imu starting thresholds -->
+    <arg name="init_window_time"  default="0.75" />
+    <arg name="init_imu_thresh"   default="0.12" />
+    
+    <!-- Some more params -->
+    <arg name="calib_cam_timeoffset"    default="false" />
+    <arg name="topic_imu"               default="/imu0" />    
+
+
+    <!-- Vehicle Update parameters -->
+    <arg name="vehicle_update_mode"                 default="VEHICLE_UPDATE_NONE" />
+    <arg name="use_yaw_odom_second_order"           default="true" />
+    <arg name="use_yaw_jacobi_second_order"         default="false" />
+    <arg name="speed_update_mode"                   default="SPEED_UPDATE_VECTOR" />
+    <arg name="sigma_speed_x"                       default="0.1" />
+    <arg name="sigma_zero_speed_y"                  default="0.3" />
+    <arg name="sigma_zero_speed_z"                  default="0.3" />
+    <arg name="vehicle_speed_chi2_multiplier"       default="1.0" />
+    <arg name="sigma_steering_angle"                default="0.017453293" />
+    <arg name="vehicle_steering_chi2_multiplier"    default="1.0" />
+    <arg name="wheel_base"                          default="2.791" />
+    <arg name="steering_angle_update_min_speed"     default="3.0" />
+    <arg name="ackermann_drive_msg_contains_steering_wheel_angle" default="true" />
+    <arg name="steering_ratio"                      default="15.2" />
+    <arg name="max_steering_angle"                  default="100.0" />
+    <arg name="track_length"                        default="1.568" />
+
+    <!-- MASTER NODE! -->
+<!--    <node name="ros1_serial_msckf" pkg="ov_msckf" type="ros1_serial_msckf" output="screen" clear_params="true" required="true" launch-prefix="gdb -ex run &#45;&#45;args">-->
+    <node name="ros1_serial_msckf" pkg="ov_msckf" type="ros1_serial_msckf" output="screen" clear_params="true" required="true">
+
+        <!-- bag parameters -->
+        <param name="path_bag"                 type="str"    value="$(arg bag)" />
+        <param name="bag_start"                type="double" value="$(arg bag_start)" />
+        <param name="bag_durr"                 type="int"    value="$(arg bag_durr)" />
+
+        <!-- master configuration object -->
+        <param name="verbosity"                 type="str"    value="$(arg verbosity)" />
+        <param name="config_path"               type="str"    value="$(arg config_path)" />
+        <param name="multi_threading"           type="bool"   value="true" />
+
+        <!-- world/filter parameters -->
+        <param name="use_stereo"                type="bool"   value="$(arg use_stereo)" />
+        <param name="max_cameras"               type="int"    value="$(arg max_cameras)" />
+
+        <!-- timing statistics recording -->
+        <param name="record_timing_information" type="bool"   value="$(arg dotime)" />
+        <param name="record_timing_filepath"    type="str"    value="$(arg path_time)" />
+        
+        <!-- Some more parameters -->
+        <param name="calib_cam_timeoffset"      type="bool"   value="$(arg calib_cam_timeoffset)" />
+        <param name="topic_imu"                 type="str"    value="$(arg topic_imu)" />
+
+
+        <!-- OVVU vehicle update parameters -->
+        <param name="vehicle_update_mode"                 type="str"     value="$(arg vehicle_update_mode)" />
+        <param name="use_yaw_odom_second_order"           type="bool"    value="$(arg use_yaw_odom_second_order)" />
+        <param name="use_yaw_jacobi_second_order"         type="bool"    value="$(arg use_yaw_jacobi_second_order)" />
+        <param name="speed_update_mode"                   type="str"     value="$(arg speed_update_mode)" />
+        <param name="sigma_speed_x"                       type="double"  value="$(arg sigma_speed_x)" />
+        <param name="sigma_zero_speed_y"                  type="double"  value="$(arg sigma_zero_speed_y)" />
+        <param name="sigma_zero_speed_z"                  type="double"  value="$(arg sigma_zero_speed_z)" />
+        <param name="vehicle_speed_chi2_multiplier"       type="double"  value="$(arg vehicle_speed_chi2_multiplier)" />
+        <param name="sigma_steering_angle"                type="double"  value="$(arg sigma_steering_angle)" />
+        <param name="vehicle_steering_chi2_multiplier"    type="double"  value="$(arg vehicle_steering_chi2_multiplier)" />
+        <param name="wheel_base"                          type="double"  value="$(arg wheel_base)" />
+        <param name="steering_angle_update_min_speed"     type="double"  value="$(arg steering_angle_update_min_speed)" />
+        <param name="steering_ratio"                      type="double"  value="$(arg steering_ratio)" />
+        <param name="max_steering_angle"                  type="double"  value="$(arg max_steering_angle)" />
+        <param name="track_length"                        type="double"  value="$(arg track_length)" />
+
+    </node> <!-- MASTER NODE! -->
+
+    <group if="$(arg dovisualize)">
+        <node type="rviz" name="rviz" pkg="rviz" args="-d $(find ov_msckf)/launch/display_driving.rviz" required="true" />
+    </group>
+
+    <!-- record the trajectory if enabled -->
+    <group if="$(arg dosave)">
+        <node name="recorder_estimate" pkg="ov_eval" type="pose_to_file" output="screen" required="true">
+            <param name="topic"      type="str" value="/ov_msckf/poseimu" />
+            <param name="topic_type" type="str" value="PoseWithCovarianceStamped" />
+            <param name="output"     type="str" value="$(arg path_est)" />
+        </node>
+
+        <node name="recorder_estimate_rpg" pkg="ov_eval" type="pose_to_file" output="screen" required="true" >
+            <param name="topic"      type="str" value="/ov_msckf/poseimu_no_cov" />
+            <param name="topic_type" type="str" value="PoseStamped" />
+            <param name="output"     type="str" value="$(arg path_rpg_est)" />
+        </node>
+    </group>
+
+    <!-- path viz of aligned gt -->
+    <group if="$(arg dolivetraj)">
+        <node name="live_align_trajectory" pkg="ov_eval" type="live_align_trajectory" output="log" clear_params="true">
+            <param name="alignment_type" type="str" value="posyaw" />
+            <param name="path_gt"        type="str" value="$(arg path_gt)" />
+        </node>
+    </group>
+
+
+</launch>

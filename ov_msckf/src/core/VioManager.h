@@ -49,6 +49,7 @@
 #include "state/StateHelper.h"
 #include "update/UpdaterMSCKF.h"
 #include "update/UpdaterSLAM.h"
+#include "update/UpdaterVehicle.h" // OVVU
 #include "update/UpdaterZeroVelocity.h"
 
 #include "VioManagerOptions.h"
@@ -63,6 +64,9 @@ namespace ov_msckf {
  * If we have measurements to propagate or update with, this class will call on our state to do that.
  */
 class VioManager {
+
+  // OVVU: Make this a friend class so that ROS1Visualizer can acccess updaterVehicle to check for vehicle updates.
+  friend class ROS1Visualizer; // ASTODO maybe use getter instead
 
 public:
   /**
@@ -94,6 +98,11 @@ public:
     if (is_initialized_vio && updaterZUPT != nullptr) {
       updaterZUPT->feed_imu(message, oldest_time);
     }
+
+    // Push back to the vehicle updater if we have it
+    if (is_initialized_vio && updaterVehicle != nullptr) {
+      updaterVehicle->feed_imu(message, oldest_time);
+    }
   }
 
   /**
@@ -101,6 +110,18 @@ public:
    * @param message Contains our timestamp, images, and camera ids
    */
   void feed_measurement_camera(const ov_core::CameraData &message) { track_image_and_update(message); }
+
+  /**
+   * @brief Feed function for our ackermann drive data OVVU
+   * @param message Contains our timestamp, steering angle, and speed measurement
+   */
+  void feed_measurement_ackermann_drive(const ov_core::AckermannDriveData &message);
+
+  /**
+   * @brief Feed function for our wheel speeds data OVVU
+   * @param message Contains our timestamp and wheel speeds in [m/s] per wheel
+   */
+  void feed_measurement_wheel_speeds(const ov_core::WheelSpeedsData &message);
 
   /**
    * @brief Feed function for a synchronized simulated cameras
@@ -333,6 +354,12 @@ protected:
   /// Our zero velocity tracker
   std::shared_ptr<UpdaterZeroVelocity> updaterZUPT;
 
+  /// OVVU: Our vehicle updater OVVU
+  std::shared_ptr<UpdaterVehicle> updaterVehicle;
+
+  /// OVVU: Queue up ackermann drive measurements
+  std::deque<ov_core::AckermannDriveData> ackermann_drive_queue;
+
   /// This is the queue of measurement times that have come in since we starting doing initialization
   /// After we initialize, we will want to prop & update to the latest timestamp quickly
   std::vector<double> camera_queue_init;
@@ -341,6 +368,8 @@ protected:
   // Timing statistic file and variables
   std::ofstream of_statistics;
   boost::posix_time::ptime rT1, rT2, rT3, rT4, rT5, rT6, rT7;
+  // OVVU: The time for processing all vehicle updates
+  double time_vehicle_update = 0;
 
   // Track how much distance we have traveled
   double timelastupdate = -1;

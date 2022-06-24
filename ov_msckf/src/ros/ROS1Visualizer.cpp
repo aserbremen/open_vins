@@ -37,6 +37,9 @@ ROS1Visualizer::ROS1Visualizer(std::shared_ptr<ros::NodeHandle> nh, std::shared_
   // Setup pose and path publisher
   pub_poseimu = nh->advertise<geometry_msgs::PoseWithCovarianceStamped>("/ov_msckf/poseimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_poseimu.getTopic().c_str());
+  // OVVU: Also publish pose without covariance information to analyze with https://github.com/uzh-rpg/rpg_trajectory_evaluation
+  pub_poseimu_no_cov = nh->advertise<geometry_msgs::PoseStamped>("/ov_msckf/poseimu_no_cov", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_poseimu_no_cov.getTopic().c_str());
   pub_odomimu = nh->advertise<nav_msgs::Odometry>("/ov_msckf/odomimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_odomimu.getTopic().c_str());
   pub_pathimu = nh->advertise<nav_msgs::Path>("/ov_msckf/pathimu", 2);
@@ -382,8 +385,23 @@ void ROS1Visualizer::callback_inertial(const sensor_msgs::Imu::ConstPtr &msg) {
 
       // Loop through our queue and see if we are able to process any of our camera measurements
       // We are able to process if we have at least one IMU measurement greater than the camera time
+      // OVVU: In case of vehicle updates we should go into this loop if we have one ackermann drive, or wheel speeds measurement greater
+      // than the time we will propagate to and update with. Also only do this once we have reached max clone size for stability reasons.
+      bool process_cam = true;
+      double time1 = camera_queue.at(0).timestamp + _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
+      if (_app->updaterVehicle != nullptr && (int)_app->get_state()->_clones_IMU.size() == _app->get_state()->_options.max_clone_size) {
+        if (params.use_ackermann_drive_measurements && !_app->ackermann_drive_queue.empty() &&
+            _app->ackermann_drive_queue.back().timestamp < time1) {
+          process_cam = false;
+        }
+
+        if (params.use_wheel_speeds_measurements && !_app->updaterVehicle->get_wheel_speeds_data().empty() &&
+            _app->updaterVehicle->get_wheel_speeds_data().back().timestamp < time1) {
+          process_cam = false;
+        }
+      }
       double timestamp_imu_inC = message.timestamp - _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
-      while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC) {
+      while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC && process_cam) {
         auto rT0_1 = boost::posix_time::microsec_clock::local_time();
         _app->feed_measurement_camera(camera_queue.at(0));
         visualize();
@@ -532,6 +550,20 @@ void ROS1Visualizer::publish_state() {
     }
   }
   pub_poseimu.publish(poseIinM);
+
+  // OVVU: Publish pose without covariance information
+  geometry_msgs::PoseStamped poseIinM_no_cov;
+  poseIinM_no_cov.header.stamp = poseIinM.header.stamp;
+  poseIinM_no_cov.header.seq = poseIinM.header.seq;
+  poseIinM_no_cov.header.frame_id = poseIinM.header.frame_id;
+  poseIinM_no_cov.pose.orientation.x = poseIinM.pose.pose.orientation.x;
+  poseIinM_no_cov.pose.orientation.y = poseIinM.pose.pose.orientation.y;
+  poseIinM_no_cov.pose.orientation.z = poseIinM.pose.pose.orientation.z;
+  poseIinM_no_cov.pose.orientation.w = poseIinM.pose.pose.orientation.w;
+  poseIinM_no_cov.pose.position.x = poseIinM.pose.pose.position.x;
+  poseIinM_no_cov.pose.position.y = poseIinM.pose.pose.position.y;
+  poseIinM_no_cov.pose.position.z = poseIinM.pose.pose.position.z;
+  pub_poseimu_no_cov.publish(poseIinM_no_cov);
 
   //=========================================================
   //=========================================================

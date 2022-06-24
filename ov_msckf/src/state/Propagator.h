@@ -132,6 +132,28 @@ public:
   void propagate_and_clone(std::shared_ptr<State> state, double timestamp);
 
   /**
+   * @brief Propagate state up to given timestamp
+   *
+   * OVVU: This will first collect all imu readings that occured between the
+   * *current* state time and the new time we want the state to be at.
+   * If we don't have any imu readings we will try to extrapolate into the future.
+   * This function is used in conjunction with vehicle updates,
+   * where we want to propagate the state and covariance not only at camera times.
+   *
+   * @param state Pointer to state
+   * @param timestamp Time to propagate to
+   * @param triggered_by_cam Whether the time we want to propagate to belongs to a camera msg
+   */
+  void propagate(std::shared_ptr<State> state, double timestamp, bool triggered_by_cam);
+
+  /**
+   * @brief OVVU: This will clone the current imu pose as a new clone in our state.
+   *
+   * @param state Pointer to the state
+   */
+  void clone(std::shared_ptr<State> state);
+
+  /**
    * @brief Gets what the state and its covariance will be at a given timestamp
    *
    * This can be used to find what the state will be in the "future" without propagating it.
@@ -164,6 +186,22 @@ public:
                                                            bool warn = true);
 
   /**
+   * @brief OVVU: Helper function that given current imu data, will select imu readings between the two times.
+   *
+   * This will create measurements that we will integrate with, and an extra measurement at the end.
+   * We use the @ref interpolate_data() function to "cut" the imu readings at the begining and end of the integration.
+   * The timestamps passed should already take into account the time offset values.
+   *
+   * @param imu_data IMU data we will select measurements from
+   * @param time0 Start timestamp
+   * @param time1 End timestamp
+   * @param warn If we should warn if we don't have enough IMU to propagate with (e.g. fast prop will get warnings otherwise)
+   * @return Vector of measurements (if we could compute them)
+   */
+  static std::vector<ov_core::ImuData> select_imu_readings_vehicle_updates(const std::vector<ov_core::ImuData> &imu_data, double time0,
+                                                                           double time1, bool warn = true);
+
+  /**
    * @brief Nice helper function that will linearly interpolate between two imu messages.
    *
    * This should be used instead of just "cutting" imu messages that bound the camera times
@@ -185,10 +223,23 @@ public:
     return data;
   }
 
+  /**
+   * @brief Get the last prop time offset object
+   *
+   * @return double Last timestamp the filter was propagated to
+   */
+  double get_last_prop_time_offset() { return last_prop_time_offset; }
+
 protected:
   /// Estimate for time offset at last propagation time
   double last_prop_time_offset = 0.0;
   bool have_last_prop_time_offset = false;
+  /// OVVU: Depending on last message that was propagated to, we have to add the camera imu offset
+  bool have_propagated_once = false;
+  /// OVVU: Whether the last propagation was triggered by a camera message
+  bool last_prop_time_was_cam_msg = false;
+  /// OVVU: Last turnrate needed for imu cam time calib offset calculation
+  Eigen::Vector3d _last_w;
 
   /**
    * @brief Propagates the state forward using the imu data and computes the noise covariance and state-transition
