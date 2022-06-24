@@ -1,8 +1,24 @@
-# OpenVINS
+# OpenVINS Vehicle Updates
 
-[![ROS 1 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros1.yml)
-[![ROS 2 Workflow](https://github.com/rpng/open_vins/actions/workflows/build_ros2.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build_ros2.yml)
-[![ROS Free Workflow](https://github.com/rpng/open_vins/actions/workflows/build.yml/badge.svg)](https://github.com/rpng/open_vins/actions/workflows/build.yml)
+This is the official implementation of the paper "Visual-Inertial Odometry aided by Speed and Steering Angle Measurements". It enables OpenVINS to use speed and steering angle measurements for ground vehicles. Further information is coming soon!
+
+If you use this work please cite the following:
+```txt
+@Conference{Serov2022FUSION,
+  Title      = {Visual-Inertial Odometry aided by Speed and Steering Angle Measurements},
+  Author     = {Andreas Serov and Joachim Clemens and Kerstin Schill},
+  Booktitle  = {2022 IEEE 25th International Conference on Information Fusion (FUSION)},
+  Year       = {2022},
+  Address    = {Linköping, Sweden},
+  Url        = {\url{https://github.com/aserbremen/open_vins}}
+}
+```
+
+Please visit the original implementation for general overview of the project and documentation
+[OpenVINS](https://github.com/rpng/open_vins/). 
+
+
+## OpenVINS 
 
 Welcome to the OpenVINS project!
 The OpenVINS project houses some core computer vision code along with a state-of-the art filter-based visual-inertial
