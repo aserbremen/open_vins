@@ -81,13 +81,14 @@ VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false),
     // Open our statistics file!
     of_statistics.open(params.record_timing_filepath, std::ofstream::out | std::ofstream::app);
     // Write the header information into it
-    of_statistics << "# timestamp (sec),tracking,propagation,msckf update,";
-    if (state->_options.max_slam_features > 0) {
-      of_statistics << "slam update,slam delayed,";
-    }
+    of_statistics << "# timestamp (sec),tracking,propagation,";
     // OVVU: Also track timing of vehicle updates
     if (params.vehicle_update_mode != params.VEHICLE_UPDATE_NONE && params.vehicle_update_mode != params.VEHICLE_UPDATE_UNKNOWN) {
       of_statistics << "vehicle updates,";
+    }
+    of_statistics << "msckf update,";
+    if (state->_options.max_slam_features > 0) {
+      of_statistics << "slam update,slam delayed,";
     }
     of_statistics << "re-tri & marg,total" << std::endl;
   }
@@ -300,17 +301,17 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     // OVVU: Instead of propagating and cloning at the same time, we split those two steps due to the updating logic of vehicle updates with
     // addtional state propagations between two camera times.
 
-    // OVVU: Save some values for preintegrated update
+    // OVVU: Last updating times for preintegrated update
     double last_cam_timestamp = state->_timestamp;
     double last_prop_time_offset = propagator->get_last_prop_time_offset();
 
     // OVVU: perform vehicle updates by propagating the state at sensor frequency of ackermann drive messages
+    auto time_tmp_vehicle = boost::posix_time::microsec_clock::local_time();
+    time_vehicle_update = 0;
     if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_PROPAGATE ||
         params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING_PROPAGATE ||
-        params.vehicle_update_mode == params.VEHICLE_UPDATE_VEHICLE_PROPAGATE) {
+        params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE) {
       while (updaterVehicle != nullptr && !ackermann_drive_queue.empty()) {
-        // double time1 = message.timestamp + state->_calib_dt_CAMtoIMU->value()(0);
-        // double time0 = ackermann_drive_queue.front().timestamp;
         // OVVU: Perform vehicle updates when max clones are reached for stability reasons
         if ((int)state->_clones_IMU.size() == state->_options.max_clone_size &&
             ackermann_drive_queue.front().timestamp < message.timestamp) {
@@ -322,9 +323,10 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
           } else {
             PRINT_DEBUG("Skipping propagation, but updating vehicle at ts %.9f\n" RESET, ackermann_drive_queue.front().timestamp);
           }
+          auto time_tmp_vehicle = boost::posix_time::microsec_clock::local_time();
           // Perform speed udpate
           if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_PROPAGATE ||
-              params.vehicle_update_mode == params.VEHICLE_UPDATE_VEHICLE_PROPAGATE) {
+              params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE) {
             if (params.speed_update_mode == params.SPEED_UPDATE_VECTOR) {
               updaterVehicle->update_speed_vector(state, ackermann_drive_queue.front());
             } else if (params.speed_update_mode == params.SPEED_UPDATE_X) {
@@ -333,15 +335,17 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
           }
           // Perform steering udpate
           if (params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING_PROPAGATE ||
-              params.vehicle_update_mode == params.VEHICLE_UPDATE_VEHICLE_PROPAGATE) {
+              params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE) {
             updaterVehicle->update_steering(state, ackermann_drive_queue.front());
           }
+          time_vehicle_update += (boost::posix_time::microsec_clock::local_time() - time_tmp_vehicle).total_microseconds() * 1e-6;
         }
         // In any case we pop the latest ackermann drive message
         ackermann_drive_queue.pop_front();
+        // If we have an ackermann drive message that is newer than the current camera time, we break at this point and perform the
+        // corresponding updates with the next image.
         if (!ackermann_drive_queue.empty()) {
           if (ackermann_drive_queue.front().timestamp > message.timestamp) {
-            PRINT_DEBUG(MAGENTA "Breaking out of propagation cycle\n" RESET);
             break;
           }
         }
@@ -350,24 +354,21 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
 
     // OVVU: After potential vehicle updates propagate the filter to the current camera time
     propagator->propagate(state, message.timestamp, true);
-
     propagator->clone(state);
 
     // OVVU: add all preintegrated vehicle updates at this point
-    auto time_tmp = boost::posix_time::microsec_clock::local_time();
+    time_tmp_vehicle = boost::posix_time::microsec_clock::local_time();
     // Perform preintegrated vehicle update after cloning the propagated state
     if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
       updaterVehicle->update_vehicle_preintegrated(state, last_cam_timestamp, last_prop_time_offset);
-      time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp).total_microseconds() * 1e-6;
     }
     // Perform preintegrated vehicle update using differential drive model after cloning the propagated state
     if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
       updaterVehicle->update_vehicle_preintegrated_differential(state, last_cam_timestamp, last_prop_time_offset);
-      time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp).total_microseconds() * 1e-6;
     }
-    // time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp).total_microseconds() * 1e6;
+    time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp_vehicle).total_microseconds() * 1e-6;
   }
   rT3 = boost::posix_time::microsec_clock::local_time();
 
@@ -628,14 +629,21 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   double time_track = (rT2 - rT1).total_microseconds() * 1e-6;
   double time_prop = (rT3 - rT2).total_microseconds() * 1e-6;
   double time_msckf = (rT4 - rT3).total_microseconds() * 1e-6;
-  double time_slam_update = (rT5 - rT4).total_microseconds() * 1e-6; // ASTODO implement correct timing handling of VU
+  double time_slam_update = (rT5 - rT4).total_microseconds() * 1e-6;
   double time_slam_delay = (rT6 - rT5).total_microseconds() * 1e-6;
   double time_marg = (rT7 - rT6).total_microseconds() * 1e-6;
   double time_total = (rT7 - rT1).total_microseconds() * 1e-6;
 
+  // OVVU: If we perform vehicle updates we have to subtract the vehicle update time from time_prop because vehicle related updates take
+  // place between rT2 and rT3.
+  if (updaterVehicle != nullptr) {
+    time_prop -= time_vehicle_update;
+  }
+
   // Timing information
   PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for tracking\n" RESET, time_track);
   PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for propagation\n" RESET, time_prop);
+  PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for vehicle related updates\n" RESET, time_vehicle_update);
   PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for MSCKF update (%d feats)\n" RESET, time_msckf, (int)featsup_MSCKF.size());
   if (state->_options.max_slam_features > 0) {
     PRINT_DEBUG(BLUE "[TIME]: %.4f seconds for SLAM update (%d feats)\n" RESET, time_slam_update, (int)state->_features_SLAM.size());
@@ -658,8 +666,13 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     double t_ItoC = state->_calib_dt_CAMtoIMU->value()(0);
     double timestamp_inI = state->_timestamp + t_ItoC;
     // Append to the file
-    of_statistics << std::fixed << std::setprecision(15) << timestamp_inI << "," << std::fixed << std::setprecision(5) << time_track << ","
-                  << time_prop << "," << time_msckf << ",";
+    of_statistics << std::fixed << std::setprecision(15) << timestamp_inI << "," << std::fixed << std::setprecision(6) << time_track << ","
+                  << time_prop << ",";
+    // OVVU: append to file if we are performing vehicle related update
+    if (updaterVehicle != nullptr) {
+      of_statistics << time_vehicle_update << ",";
+    }
+    of_statistics << time_msckf << ",";
     if (state->_options.max_slam_features > 0) {
       of_statistics << time_slam_update << "," << time_slam_delay << ",";
     }

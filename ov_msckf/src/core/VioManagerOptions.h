@@ -494,7 +494,7 @@ struct VioManagerOptions {
     // Basic OpenVINS algorithm with steering update, propagating the state at every steering measurement
     VEHICLE_UPDATE_STEERING_PROPAGATE,
     // Basic OpenVINS algorithm with speed and steering update, propagating the state at every speed and steering measurement
-    VEHICLE_UPDATE_VEHICLE_PROPAGATE,
+    VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE,
     // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using single track model
     VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK,
     // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using differential drive model
@@ -517,8 +517,8 @@ struct VioManagerOptions {
       return VEHICLE_UPDATE_SPEED_PROPAGATE;
     } else if (mode == "VEHICLE_UPDATE_STEERING_PROPAGATE") {
       return VEHICLE_UPDATE_STEERING_PROPAGATE;
-    } else if (mode == "VEHICLE_UPDATE_VEHICLE_PROPAGATE") {
-      return VEHICLE_UPDATE_VEHICLE_PROPAGATE;
+    } else if (mode == "VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE") {
+      return VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE;
     } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK") {
       return VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK;
     } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL") {
@@ -531,6 +531,7 @@ struct VioManagerOptions {
   /// Convenience flag for using Ackermann drive measurements
   bool use_ackermann_drive_measurements = false;
 
+  /// Convenience flag for using wheel speed measurements
   bool use_wheel_speeds_measurements = false;
 
   /// Whether to use second order yaw in the calculation of the preintegrated odometry model,
@@ -624,9 +625,14 @@ struct VioManagerOptions {
     if (parser != nullptr) {
       parser->parse_config("vehicle_update_mode", vehicle_update_mode_string);
       vehicle_update_mode = vehicle_update_mode_from_string(vehicle_update_mode_string);
-      // Set the convenience flag for handling Ackermann drive measurements ASTODO
+      if (vehicle_update_mode == VEHICLE_UPDATE_UNKNOWN) {
+        PRINT_ERROR(RED "vehicle_update_mode %s is unknown, exiting program.\n" RESET, vehicle_update_mode_string.c_str());
+        std::exit(EXIT_FAILURE);
+      }
+      // Set the convenience flag for handling Ackermann drive measurements
       if (vehicle_update_mode == VEHICLE_UPDATE_SPEED_PROPAGATE || vehicle_update_mode == VEHICLE_UPDATE_STEERING_PROPAGATE ||
-          vehicle_update_mode == VEHICLE_UPDATE_VEHICLE_PROPAGATE || vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK) {
+          vehicle_update_mode == VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE ||
+          vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK) {
         use_ackermann_drive_measurements = true;
       }
       // Set convenience flag for handling wheel speeds measurements
@@ -650,7 +656,6 @@ struct VioManagerOptions {
       parser->parse_config("vehicle_speed_chi2_multiplier", vehicle_speed_chi2_multiplier, false);
       parser->parse_config("sigma_steering_angle", sigma_steering_angle, false);
       parser->parse_config("vehicle_steering_chi2_multiplier", vehicle_steering_chi2_multiplier, false);
-      // parser->parse_config("pose_OtoI", pose_OtoI); ASTODO parse this correctly
       parser->parse_config("wheel_base", wheel_base, false);
       parser->parse_config("steering_angle_update_min_speed", steering_angle_update_min_speed, false);
       parser->parse_config("ackermann_drive_msg_contains_steering_wheel_angle", ackermann_drive_msg_contains_steering_wheel_angle, false);
@@ -664,18 +669,18 @@ struct VioManagerOptions {
     PRINT_DEBUG("  - use_yaw_odom_second_order: %d\n", use_yaw_odom_second_order);
     PRINT_DEBUG("  - use_yaw_jacobi_second_order: %d\n", use_yaw_jacobi_second_order);
     PRINT_DEBUG("  - speed_update_mode: %s\n", speed_update_mode_string.c_str());
-    PRINT_DEBUG("  - sigma_speed_x: %.6f\n", sigma_speed_x);
-    PRINT_DEBUG("  - sigma_zero_speed_y: %.6f\n", sigma_zero_speed_y);
-    PRINT_DEBUG("  - sigma_zero_speed_z: %.6f\n", sigma_zero_speed_z);
-    PRINT_DEBUG("  - vehicle_speed_chi2_multiplier: %.6f\n", vehicle_speed_chi2_multiplier);
+    PRINT_DEBUG("  - sigma_speed_x: %.6f m/s\n", sigma_speed_x);
+    PRINT_DEBUG("  - sigma_zero_speed_y: %.6f m/s\n", sigma_zero_speed_y);
+    PRINT_DEBUG("  - sigma_zero_speed_z: %.6f m/s\n", sigma_zero_speed_z);
+    PRINT_DEBUG("  - vehicle_speed_chi2_multiplier: %.3f\n", vehicle_speed_chi2_multiplier);
     PRINT_DEBUG("  - ackermann_drive_msg_contains_steering_wheel_angle: %d\n", ackermann_drive_msg_contains_steering_wheel_angle);
-    PRINT_DEBUG("  - sigma_steering_angle: %.6f\n", sigma_steering_angle);
-    PRINT_DEBUG("  - vehicle_steering_chi2_multiplier: %.6f\n", vehicle_steering_chi2_multiplier);
-    PRINT_DEBUG("  - wheel_base: %.6f\n", wheel_base);
-    PRINT_DEBUG("  - steering_angle_update_min_speed: %.6f\n", steering_angle_update_min_speed);
-    PRINT_DEBUG("  - steering_ratio: %.6f\n", steering_ratio);
-    PRINT_DEBUG("  - max_steering_angle: %.6f\n", max_steering_angle);
-    PRINT_DEBUG("  - track_length: %.6f\n", track_length);
+    PRINT_DEBUG("  - sigma_steering_angle: %.6f rad\n", sigma_steering_angle);
+    PRINT_DEBUG("  - vehicle_steering_chi2_multiplier: %.3f\n", vehicle_steering_chi2_multiplier);
+    PRINT_DEBUG("  - wheel_base: %.3f m\n", wheel_base);
+    PRINT_DEBUG("  - steering_angle_update_min_speed: %.3f m/s\n", steering_angle_update_min_speed);
+    PRINT_DEBUG("  - steering_ratio: %.3f\n", steering_ratio);
+    PRINT_DEBUG("  - max_steering_angle: %.3f rad\n", max_steering_angle);
+    PRINT_DEBUG("  - track_length: %.3f m\n", track_length);
   }
 };
 
