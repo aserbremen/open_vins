@@ -317,12 +317,7 @@ int main(int argc, char **argv) {
     }
 
     if (should_process_ackermann_drive) {
-      // Convert into correct format
-      ov_core::AckermannDriveData message;
-      message.timestamp = msg_ackermann_drive_current->header.stamp.toSec();
-      message.speed = msg_ackermann_drive_current->drive.speed;
-      message.steering_angle = msg_ackermann_drive_current->drive.steering_angle;
-      sys->feed_measurement_ackermann_drive(message);
+      viz->callback_ackermann_drive(msg_ackermann_drive_current);
       (*view_ackermann_drive_iter)++;
       // ASTODO check if this dereferences a nullptr
       msg_ackermann_drive_current = (*view_ackermann_drive_iter)->instantiate<ackermann_msgs::AckermannDriveStamped>();
@@ -330,14 +325,7 @@ int main(int argc, char **argv) {
     }
 
     if (should_process_wheel_speeds) {
-      // Convert into correct format
-      ov_core::WheelSpeedsData message;
-      message.timestamp = msg_wheel_speeds_current->header.stamp.toSec();
-      message.wheel_front_left = msg_wheel_speeds_current->wheel_front_left;
-      message.wheel_front_right = msg_wheel_speeds_current->wheel_front_right;
-      message.wheel_rear_left = msg_wheel_speeds_current->wheel_rear_left;
-      message.wheel_rear_right = msg_wheel_speeds_current->wheel_rear_right;
-      sys->feed_measurement_wheel_speeds(message);
+      viz->callback_wheel_speeds(msg_wheel_speeds_current);
       (*view_wheel_speeds_iter)++;
       // ASTODO check if this dereferences a nullptr
       msg_wheel_speeds_current = (*view_wheel_speeds_iter)->instantiate<WheelSpeeds>();

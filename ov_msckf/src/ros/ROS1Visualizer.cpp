@@ -169,6 +169,27 @@ void ROS1Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
       PRINT_DEBUG("subscribing to cam (mono): %s\n", cam_topic.c_str());
     }
   }
+
+  // OVVU: Setup subcribers for vehicle-related updates
+  if (_app->params.use_ackermann_drive_measurements) {
+    // Read in the topic
+    std::string topic_ackermann_drive;
+    _nh->param<std::string>("topic_ackermann_drive", topic_ackermann_drive, "/ackermann0");
+    parser->parse_config("topic_ackermann_drive", topic_ackermann_drive);
+    // Create the subscriber
+    PRINT_DEBUG("subscribing to ackermann drive: %s\n", topic_ackermann_drive.c_str());
+    sub_ackermann_drive = _nh->subscribe(topic_ackermann_drive, 1000, &ROS1Visualizer::callback_ackermann_drive, this);
+  }
+
+  if (_app->params.use_wheel_speeds_measurements) {
+    // Read in the topic
+    std::string topic_wheel_speeds;
+    _nh->param<std::string>("topic_wheel_speeds", topic_wheel_speeds, "/wheel_speeds0");
+    parser->parse_config("topic_wheel_speeds", topic_wheel_speeds);
+    // Create the subscriber
+    PRINT_DEBUG("subscribing to wheel speeds: %s\n", topic_wheel_speeds.c_str());
+    sub_wheel_speeds = _nh->subscribe(topic_wheel_speeds, 1000, &ROS1Visualizer::callback_wheel_speeds, this);
+  }
 }
 
 void ROS1Visualizer::visualize() {
@@ -514,6 +535,28 @@ void ROS1Visualizer::callback_stereo(const sensor_msgs::ImageConstPtr &msg0, con
   std::lock_guard<std::mutex> lck(camera_queue_mtx);
   camera_queue.push_back(message);
   std::sort(camera_queue.begin(), camera_queue.end());
+}
+
+void ROS1Visualizer::callback_ackermann_drive(const ackermann_msgs::AckermannDriveStampedConstPtr &msg) {
+  // OVVU: Convert into the correct format
+  ov_core::AckermannDriveData message;
+  message.timestamp = msg->header.stamp.toSec();
+  message.speed = msg->drive.speed;
+  message.steering_angle = msg->drive.steering_angle;
+  // Send it to our VIO system
+  _app->feed_measurement_ackermann_drive(message);
+}
+
+void ROS1Visualizer::callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg) {
+  // OVVU: Convert into the correct format
+  ov_core::WheelSpeedsData message;
+  message.timestamp = msg->header.stamp.toSec();
+  message.wheel_front_left = msg->wheel_front_left;
+  message.wheel_front_right = msg->wheel_front_right;
+  message.wheel_rear_left = msg->wheel_rear_left;
+  message.wheel_rear_right = msg->wheel_rear_right;
+  // Send it to our VIO system
+  _app->feed_measurement_wheel_speeds(message);
 }
 
 void ROS1Visualizer::publish_state() {

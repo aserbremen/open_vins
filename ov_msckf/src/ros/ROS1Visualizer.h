@@ -22,6 +22,10 @@
 #ifndef OV_MSCKF_ROS1VISUALIZER_H
 #define OV_MSCKF_ROS1VISUALIZER_H
 
+// OVVU
+#include <ackermann_msgs/AckermannDriveStamped.h>
+#include <ov_core/WheelSpeeds.h>
+
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <image_transport/image_transport.h>
@@ -106,6 +110,12 @@ public:
   /// Callback for synchronized stereo camera information
   void callback_stereo(const sensor_msgs::ImageConstPtr &msg0, const sensor_msgs::ImageConstPtr &msg1, int cam_id0, int cam_id1);
 
+  /// OVVU: Callback for Ackermann drive information
+  void callback_ackermann_drive(const ackermann_msgs::AckermannDriveStampedConstPtr &msg);
+
+  /// OVVU: Callback for wheel speeds information
+  void callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg);
+
 protected:
   /// Publish the current state
   void publish_state();
@@ -145,6 +155,9 @@ protected:
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
   std::vector<std::shared_ptr<message_filters::Synchronizer<sync_pol>>> sync_cam;
   std::vector<std::shared_ptr<message_filters::Subscriber<sensor_msgs::Image>>> sync_subs_cam;
+  // OVVU: Out subscribers for Ackermann drive and wheel speeds messages
+  ros::Subscriber sub_ackermann_drive;
+  ros::Subscriber sub_wheel_speeds;
 
   // For path viz
   unsigned int poses_seq_imu = 0;
