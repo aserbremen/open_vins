@@ -41,6 +41,9 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   PRINT_DEBUG("Publishing: %s\n", pub_odomimu->get_topic_name());
   pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("/ov_msckf/pathimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu->get_topic_name());
+  // OVVU: Also publish pose without covariance information to analyze with https://github.com/uzh-rpg/rpg_trajectory_evaluation
+  pub_poseimu_no_cov = node->create_publisher<geometry_msgs::PoseStamped>("/ov_msckf/poseimu_no_cov", 2);
+  PRINT_DEBUG("Publishing: %s\n", pub_poseimu_no_cov->get_topic_name());
 
   // 3D points publishing
   pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("/ov_msckf/points_msckf", 2);
@@ -176,6 +179,27 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
       subs_cam.push_back(sub);
       PRINT_DEBUG("subscribing to cam (mono): %s", cam_topic.c_str());
     }
+  }
+
+  // OVVU: Setup subcribers for vehicle-related updates
+  if (_app->params.use_ackermann_drive_measurements) {
+    // Read in the topic
+    std::string topic_ackermann_drive;
+    _nh->param<std::string>("topic_ackermann_drive", topic_ackermann_drive, "/ackermann0");
+    parser->parse_config("topic_ackermann_drive", topic_ackermann_drive);
+    // Create the subscriber
+    PRINT_DEBUG("subscribing to ackermann drive: %s\n", topic_ackermann_drive.c_str());
+    sub_ackermann_drive = _nh->subscribe(topic_ackermann_drive, 1000, &ROS1Visualizer::callback_ackermann_drive, this);
+  }
+
+  if (_app->params.use_wheel_speeds_measurements) {
+    // Read in the topic
+    std::string topic_wheel_speeds;
+    _nh->param<std::string>("topic_wheel_speeds", topic_wheel_speeds, "/wheel_speeds0");
+    parser->parse_config("topic_wheel_speeds", topic_wheel_speeds);
+    // Create the subscriber
+    PRINT_DEBUG("subscribing to wheel speeds: %s\n", topic_wheel_speeds.c_str());
+    sub_wheel_speeds = _nh->subscribe(topic_wheel_speeds, 1000, &ROS1Visualizer::callback_wheel_speeds, this);
   }
 }
 
@@ -510,6 +534,28 @@ void ROS2Visualizer::callback_stereo(const sensor_msgs::msg::Image::ConstSharedP
   std::lock_guard<std::mutex> lck(camera_queue_mtx);
   camera_queue.push_back(message);
   std::sort(camera_queue.begin(), camera_queue.end());
+}
+
+void ROS2Visualizer::callback_ackermann_drive(const ackermann_msgs::AckermannDriveStampedConstPtr &msg) {
+  // OVVU: Convert into the correct format
+  ov_core::AckermannDriveData message;
+  message.timestamp = msg->header.stamp.toSec();
+  message.speed = msg->drive.speed;
+  message.steering_angle = msg->drive.steering_angle;
+  // Send it to our VIO system
+  _app->feed_measurement_ackermann_drive(message);
+}
+
+void ROS2Visualizer::callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg) {
+  // OVVU: Convert into the correct format
+  ov_core::WheelSpeedsData message;
+  message.timestamp = msg->header.stamp.toSec();
+  message.wheel_front_left = msg->wheel_front_left;
+  message.wheel_front_right = msg->wheel_front_right;
+  message.wheel_rear_left = msg->wheel_rear_left;
+  message.wheel_rear_right = msg->wheel_rear_right;
+  // Send it to our VIO system
+  _app->feed_measurement_wheel_speeds(message);
 }
 
 void ROS2Visualizer::publish_state() {

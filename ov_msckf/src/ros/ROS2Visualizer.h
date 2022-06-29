@@ -22,6 +22,10 @@
 #ifndef OV_MSCKF_ROS2VISUALIZER_H
 #define OV_MSCKF_ROS2VISUALIZER_H
 
+// OVVU
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <ov_core/WheelSpeeds.h>
+
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -111,6 +115,12 @@ public:
   void callback_stereo(const sensor_msgs::msg::Image::ConstSharedPtr msg0, const sensor_msgs::msg::Image::ConstSharedPtr msg1, int cam_id0,
                        int cam_id1);
 
+  /// OVVU: Callback for Ackermann drive information
+  void callback_ackermann_drive(const ackermann_msgs::AckermannDriveStampedConstPtr &msg);
+
+  /// OVVU: Callback for wheel speeds information
+  void callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg);
+
 protected:
   /// Publish the current state
   void publish_state();
@@ -141,6 +151,7 @@ protected:
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_poseimu;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odomimu;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_pathimu;
+  rclpp::Publisher<geometry::msg::PoseStamped>::SharedPtr pub_poseimu_no_cov; // OVVU
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_points_msckf, pub_points_slam, pub_points_aruco, pub_points_sim;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_loop_pose, pub_loop_extrinsic;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_loop_point;
@@ -153,6 +164,9 @@ protected:
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image> sync_pol;
   std::vector<std::shared_ptr<message_filters::Synchronizer<sync_pol>>> sync_cam;
   std::vector<std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>>> sync_subs_cam;
+  // OVVU: Out subscribers for Ackermann drive and wheel speeds messages
+  ros::Subscriber sub_ackermann_drive;
+  ros::Subscriber sub_wheel_speeds;
 
   // For path viz
   std::vector<geometry_msgs::msg::PoseStamped> poses_imu;

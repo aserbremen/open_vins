@@ -64,7 +64,7 @@ list(APPEND LIBRARY_SOURCES
         src/update/UpdaterMSCKF.cpp
         src/update/UpdaterSLAM.cpp
         src/update/UpdaterZeroVelocity.cpp
-        src/udpate/UpdaterVehicle.cpp # OVVU
+        src/update/UpdaterVehicle.cpp # OVVU
 )
 list(APPEND LIBRARY_SOURCES src/ros/ROS2Visualizer.cpp)
 file(GLOB_RECURSE LIBRARY_HEADERS "src/*.h")
