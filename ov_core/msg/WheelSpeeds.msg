@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 float64 wheel_front_left
 float64 wheel_front_right

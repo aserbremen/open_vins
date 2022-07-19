@@ -42,7 +42,7 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("/ov_msckf/pathimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu->get_topic_name());
   // OVVU: Also publish pose without covariance information to analyze with https://github.com/uzh-rpg/rpg_trajectory_evaluation
-  pub_poseimu_no_cov = node->create_publisher<geometry_msgs::PoseStamped>("/ov_msckf/poseimu_no_cov", 2);
+  pub_poseimu_no_cov = node->create_publisher<geometry_msgs::msg::PoseStamped>("/ov_msckf/poseimu_no_cov", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_poseimu_no_cov->get_topic_name());
 
   // 3D points publishing
@@ -185,21 +185,23 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   if (_app->params.use_ackermann_drive_measurements) {
     // Read in the topic
     std::string topic_ackermann_drive;
-    _nh->param<std::string>("topic_ackermann_drive", topic_ackermann_drive, "/ackermann0");
-    parser->parse_config("topic_ackermann_drive", topic_ackermann_drive);
-    // Create the subscriber
-    PRINT_DEBUG("subscribing to ackermann drive: %s\n", topic_ackermann_drive.c_str());
-    sub_ackermann_drive = _nh->subscribe(topic_ackermann_drive, 1000, &ROS1Visualizer::callback_ackermann_drive, this);
+    _node->declare_parameter<std::string>("topic_ackermann_drive", "/ackermann0");
+    _node->get_parameter("topic_ackermann_drive", topic_ackermann_drive);
+    parser->parse_config("topic_ackermann_Drive", topic_ackermann_drive, true);
+    sub_ackermann_drive = _node->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+        topic_ackermann_drive, 500, std::bind(&ROS2Visualizer::callback_ackermann_drive, this, std::placeholders::_1));
+    PRINT_DEBUG("subscribing to ackermann drive: %s", topic_ackermann_drive.c_str());
   }
 
   if (_app->params.use_wheel_speeds_measurements) {
     // Read in the topic
     std::string topic_wheel_speeds;
-    _nh->param<std::string>("topic_wheel_speeds", topic_wheel_speeds, "/wheel_speeds0");
-    parser->parse_config("topic_wheel_speeds", topic_wheel_speeds);
-    // Create the subscriber
-    PRINT_DEBUG("subscribing to wheel speeds: %s\n", topic_wheel_speeds.c_str());
-    sub_wheel_speeds = _nh->subscribe(topic_wheel_speeds, 1000, &ROS1Visualizer::callback_wheel_speeds, this);
+    _node->declare_parameter<std::string>("topic_wheel_speeds", "/wheel_speeds0");
+    _node->get_parameter("topic_wheel_speeds", topic_wheel_speeds);
+    parser->parse_config("topic_wheel_speeds", topic_wheel_speeds, true);
+    sub_ackermann_drive = _node->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+        topic_wheel_speeds, 500, std::bind(&ROS2Visualizer::callback_ackermann_drive, this, std::placeholders::_1));
+    PRINT_DEBUG("subscribing to ackermann drive: %s", topic_wheel_speeds.c_str());
   }
 }
 
@@ -536,20 +538,20 @@ void ROS2Visualizer::callback_stereo(const sensor_msgs::msg::Image::ConstSharedP
   std::sort(camera_queue.begin(), camera_queue.end());
 }
 
-void ROS2Visualizer::callback_ackermann_drive(const ackermann_msgs::AckermannDriveStampedConstPtr &msg) {
+void ROS2Visualizer::callback_ackermann_drive(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg) {
   // OVVU: Convert into the correct format
   ov_core::AckermannDriveData message;
-  message.timestamp = msg->header.stamp.toSec();
+  message.timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
   message.speed = msg->drive.speed;
   message.steering_angle = msg->drive.steering_angle;
   // Send it to our VIO system
   _app->feed_measurement_ackermann_drive(message);
 }
 
-void ROS2Visualizer::callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg) {
+void ROS2Visualizer::callback_wheel_speeds(const ov_core::msg::WheelSpeeds::SharedPtr msg) {
   // OVVU: Convert into the correct format
   ov_core::WheelSpeedsData message;
-  message.timestamp = msg->header.stamp.toSec();
+  message.timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
   message.wheel_front_left = msg->wheel_front_left;
   message.wheel_front_right = msg->wheel_front_right;
   message.wheel_rear_left = msg->wheel_rear_left;

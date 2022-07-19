@@ -24,12 +24,12 @@
 
 // OVVU
 #include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
-#include <ov_core/WheelSpeeds.h>
+#include <ov_core/msg/wheel_speeds.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
-#include <image_transport/image_transport.h>
+#include <image_transport/image_transport.hpp> // OVVU silence deprecation warning of including image_transport.h
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/time_synchronizer.h>
@@ -116,10 +116,10 @@ public:
                        int cam_id1);
 
   /// OVVU: Callback for Ackermann drive information
-  void callback_ackermann_drive(const ackermann_msgs::AckermannDriveStampedConstPtr &msg);
+  void callback_ackermann_drive(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
 
-  /// OVVU: Callback for wheel speeds information
-  void callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg);
+  // /// OVVU: Callback for wheel speeds information
+  void callback_wheel_speeds(const ov_core::msg::WheelSpeeds::SharedPtr msg);
 
 protected:
   /// Publish the current state
@@ -149,9 +149,9 @@ protected:
   // Our publishers
   image_transport::Publisher it_pub_tracks, it_pub_loop_img_depth, it_pub_loop_img_depth_color;
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_poseimu;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_poseimu_no_cov; // OVVU
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odomimu;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_pathimu;
-  rclpp::Publisher<geometry::msg::PoseStamped>::SharedPtr pub_poseimu_no_cov; // OVVU
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_points_msckf, pub_points_slam, pub_points_aruco, pub_points_sim;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_loop_pose, pub_loop_extrinsic;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud>::SharedPtr pub_loop_point;
@@ -165,8 +165,8 @@ protected:
   std::vector<std::shared_ptr<message_filters::Synchronizer<sync_pol>>> sync_cam;
   std::vector<std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>>> sync_subs_cam;
   // OVVU: Out subscribers for Ackermann drive and wheel speeds messages
-  ros::Subscriber sub_ackermann_drive;
-  ros::Subscriber sub_wheel_speeds;
+  rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr sub_ackermann_drive;
+  rclcpp::Subscription<ov_core::msg::WheelSpeeds>::SharedPtr sub_wheel_speeds;
 
   // For path viz
   std::vector<geometry_msgs::msg::PoseStamped> poses_imu;
