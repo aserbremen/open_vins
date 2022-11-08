@@ -42,6 +42,7 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("/ov_msckf/pathimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu->get_topic_name());
   // OVVU: Also publish pose without covariance information to analyze with https://github.com/uzh-rpg/rpg_trajectory_evaluation
+  // ASTODO remove this, as we can get the information from Odometry or PoseWithCovarianceStamped message
   pub_poseimu_no_cov = node->create_publisher<geometry_msgs::msg::PoseStamped>("/ov_msckf/poseimu_no_cov", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_poseimu_no_cov->get_topic_name());
 
@@ -88,32 +89,46 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   }
 
   // Load if we should save the total state to file
-  node->declare_parameter<bool>("save_total_state", false);
-  node->get_parameter("save_total_state", save_total_state);
+  // OVVU: Check return value to determine whether save_total_state is already declared
+  if (!node->get_parameter("save_total_state", save_total_state)) {
+    node->declare_parameter<bool>("save_total_state", false);
+    node->get_parameter("save_total_state", save_total_state);
+  }
 
   // If the file is not open, then open the file
   if (save_total_state) {
 
     // files we will open
-    std::string filepath_est, filepath_std, filepath_gt;
+    std::string filepath_est, filepath_std, filepath_gt, filepath_pose_est_rpg;
     node->declare_parameter<std::string>("filepath_est", "state_estimate.txt");
     node->declare_parameter<std::string>("filepath_std", "state_deviation.txt");
     node->declare_parameter<std::string>("filepath_gt", "state_groundtruth.txt");
+    // OVVU: Additionally save the odometry results without covariance
+    if (!node->get_parameter("filepath_pose_est_rpg", filepath_pose_est_rpg)) {
+      node->declare_parameter<std::string>("filepath_pose_est_rpg", "stamped_traj_est.txt");
+    }
     node->get_parameter<std::string>("filepath_est", filepath_est);
     node->get_parameter<std::string>("filepath_std", filepath_std);
     node->get_parameter<std::string>("filepath_gt", filepath_gt);
+    node->get_parameter<std::string>("filepath_pose_est_rpg", filepath_pose_est_rpg);
+
+    std::cout << filepath_pose_est_rpg << std::endl;
 
     // If it exists, then delete it
     if (boost::filesystem::exists(filepath_est))
       boost::filesystem::remove(filepath_est);
     if (boost::filesystem::exists(filepath_std))
       boost::filesystem::remove(filepath_std);
+    if (boost::filesystem::exists(filepath_pose_est_rpg))
+      boost::filesystem::remove(filepath_pose_est_rpg);
 
     // Open the files
     of_state_est.open(filepath_est.c_str());
     of_state_std.open(filepath_std.c_str());
+    of_pose_est_rpg.open(filepath_pose_est_rpg.c_str());
     of_state_est << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans .... etc" << std::endl;
     of_state_std << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans .... etc" << std::endl;
+    of_pose_est_rpg << "# timestamp(s) tx ty tz qx qy qz qw" << std::endl;
 
     // Groundtruth if we are simulating
     if (_sim != nullptr) {
@@ -134,6 +149,7 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   std::string topic_imu;
   _node->declare_parameter<std::string>("topic_imu", "/imu0");
   _node->get_parameter("topic_imu", topic_imu);
+  std::cout << "topic_imu " << topic_imu << std::endl;
   parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
   sub_imu = _node->create_subscription<sensor_msgs::msg::Imu>(topic_imu, 1000,
                                                               std::bind(&ROS2Visualizer::callback_inertial, this, std::placeholders::_1));
@@ -187,7 +203,7 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
     std::string topic_ackermann_drive;
     _node->declare_parameter<std::string>("topic_ackermann_drive", "/ackermann0");
     _node->get_parameter("topic_ackermann_drive", topic_ackermann_drive);
-    parser->parse_config("topic_ackermann_Drive", topic_ackermann_drive, true);
+    parser->parse_config("topic_ackermann_drive", topic_ackermann_drive, true);
     sub_ackermann_drive = _node->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
         topic_ackermann_drive, 500, std::bind(&ROS2Visualizer::callback_ackermann_drive, this, std::placeholders::_1));
     PRINT_DEBUG("subscribing to ackermann drive: %s", topic_ackermann_drive.c_str());
@@ -244,6 +260,15 @@ void ROS2Visualizer::visualize() {
   // Save total state
   if (save_total_state) {
     RosVisualizerHelper::sim_save_total_state_to_file(_app->get_state(), _sim, of_state_est, of_state_std, of_state_gt);
+    // OVVU: write pose results in rpg trajectory evaluation format
+    const auto &state = _app->get_state();
+    of_pose_est_rpg.precision(6);
+    of_pose_est_rpg.setf(std::ios::fixed, std::ios::floatfield);
+    of_pose_est_rpg << state->_timestamp << " ";
+    of_pose_est_rpg << state->_imu->pos().x() << " " << state->_imu->pos().y() << " " << state->_imu->pos().z() << " ";
+    of_pose_est_rpg << state->_imu->quat().x() << " " << state->_imu->quat().y() << " " << state->_imu->quat().z() << " "
+                    << state->_imu->quat().w();
+    of_pose_est_rpg << std::endl;
   }
 
   // Print how much time it took to publish / displaying things

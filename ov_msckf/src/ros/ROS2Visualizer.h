@@ -149,7 +149,7 @@ protected:
   // Our publishers
   image_transport::Publisher it_pub_tracks, it_pub_loop_img_depth, it_pub_loop_img_depth_color;
   rclcpp::Publisher<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr pub_poseimu;
-  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_poseimu_no_cov; // OVVU
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_poseimu_no_cov; // OVVU, ASTODO not necessary?
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_odomimu;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr pub_pathimu;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub_points_msckf, pub_points_slam, pub_points_aruco, pub_points_sim;
@@ -211,6 +211,9 @@ protected:
   // Files and if we should save total state
   bool save_total_state;
   std::ofstream of_state_est, of_state_std, of_state_gt;
+
+  // OVVU: Add file stream for odometry results only (translation, rotation) in the rpg trajectory evaluation format
+  std::ofstream of_pose_est_rpg;
 };
 
 } // namespace ov_msckf
