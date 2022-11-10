@@ -3,7 +3,7 @@
 This is the official implementation of the paper [Visual-Inertial Odometry aided by Speed and Steering Angle Measurements](https://ieeexplore.ieee.org/document/9841243). It enables OpenVINS to use speed, steering angle, and wheel speeds measurements in different variants for ground vehicles such as cars or wheeled robots. 
 
 ## Usage
-This code is currently tested on Ubuntu 18.04 and ROS 1 and the monocular camera IMU setup. ROS 2 implementation is available soon. Additional speed and steering measurements are supplied with a [stamped Ackermann drive message](http://docs.ros.org/en/jade/api/ackermann_msgs/html/msg/AckermannDriveStamped.html) available from standard ROS packages on the topic `/ackermann0`. When using wheel speed measurements and the differential drive model you need to use the [custom Wheel speeds message](https://github.com/aserbremen/open_vins/blob/master/ov_core/msg/WheelSpeeds.msg) on the topic `/wheel_speeds0` added to `ov_core`. 
+This code is currently tested on Ubuntu 18.04 and ROS 1 melodic and the monocular camera IMU setup. Additional speed and steering measurements are supplied with a [stamped Ackermann drive message](http://docs.ros.org/en/jade/api/ackermann_msgs/html/msg/AckermannDriveStamped.html) available from standard ROS packages on the topic `/ackermann0`. When using wheel speed measurements and the differential drive model you need to use the [custom Wheel speeds message](https://github.com/aserbremen/open_vins/blob/master/ov_core/msg/WheelSpeeds.msg) on the topic `/wheel_speeds0` added to `ov_core` in the `msg` folder.
 
 Different vehicle-related updates are set with the ros parameter `vehicle_update_mode`. The best performing method for cars is `VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK`. The other options are given in the following enum:
 ```c++
@@ -32,8 +32,6 @@ To run the algorithm on a rosbag use the following command:
 <code>roslaunch ov_msckf serial_vehicle_updates.launch bag:=/path/to/bag.bag vehicle_update_mode:=VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK path_est:=/path/to/OpenVINS-format/result.txt path_rpg_est:=/path/to/RPG_trajectory_evaluation-format/stamped_traj_estimate.txt path_time:=/path/to/computation-time-results.txt</code>
 
 Note that I added the parameter `path_rpg_est` to output the results in a format that enables the usage of the [rpg_trajectory_evaluation](https://github.com/uzh-rpg/rpg_trajectory_evaluation) toolbox.
-
-### ROS 2 Usage available soon
 
 ## Different updating schemes
 
