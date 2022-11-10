@@ -149,7 +149,6 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
   std::string topic_imu;
   _node->declare_parameter<std::string>("topic_imu", "/imu0");
   _node->get_parameter("topic_imu", topic_imu);
-  std::cout << "topic_imu " << topic_imu << std::endl;
   parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
   sub_imu = _node->create_subscription<sensor_msgs::msg::Imu>(topic_imu, 1000,
                                                               std::bind(&ROS2Visualizer::callback_inertial, this, std::placeholders::_1));
@@ -215,8 +214,8 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
     _node->declare_parameter<std::string>("topic_wheel_speeds", "/wheel_speeds0");
     _node->get_parameter("topic_wheel_speeds", topic_wheel_speeds);
     parser->parse_config("topic_wheel_speeds", topic_wheel_speeds, true);
-    sub_ackermann_drive = _node->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
-        topic_wheel_speeds, 500, std::bind(&ROS2Visualizer::callback_ackermann_drive, this, std::placeholders::_1));
+    sub_wheel_speeds = _node->create_subscription<ov_core::msg::WheelSpeeds>(
+        topic_wheel_speeds, 500, std::bind(&ROS2Visualizer::callback_wheel_speeds, this, std::placeholders::_1));
     PRINT_DEBUG("subscribing to ackermann drive: %s", topic_wheel_speeds.c_str());
   }
 }
