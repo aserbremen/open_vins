@@ -570,13 +570,13 @@ struct VioManagerOptions {
   }
 
   /// Vehicle speed x noise (m/s)
-  double sigma_speed_x = 0.01;
+  double sigma_speed_x = 0.1;
 
   /// Vehicle zero speed y noise (m/s)
-  double sigma_zero_speed_y = 0.1;
+  double sigma_zero_speed_y = 0.3;
 
   /// Vehicle zero speed y noise (m/s)
-  double sigma_zero_speed_z = 0.05;
+  double sigma_zero_speed_z = 0.3;
 
   /// Vehicle speed chi2 multiplier
   double vehicle_speed_chi2_multiplier = 1.0;
