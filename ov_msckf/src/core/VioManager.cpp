@@ -356,14 +356,17 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     propagator->propagate(state, message.timestamp, true);
     propagator->clone(state);
 
-    // OVVU: add all preintegrated vehicle updates at this point
+    // OVVU: Perform preintegrated vehicle updates at this point, note that we either perform preintegrated updates or vehicle updates at
+    // sensor frequency (see above).
     time_tmp_vehicle = boost::posix_time::microsec_clock::local_time();
-    // Perform preintegrated vehicle update after cloning the propagated state
+    // Perform preintegrated vehicle update using the Ackermann drive model after cloning the propagated state. Also only perform the update
+    // if max clones are reached for stability reasons.
     if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
       updaterVehicle->update_vehicle_preintegrated(state, last_cam_timestamp, last_prop_time_offset);
     }
-    // Perform preintegrated vehicle update using differential drive model after cloning the propagated state
+    // Perform preintegrated vehicle update using differential drive model after cloning the propagated state. Also only perform the update
+    // if max clones are reached for stability reasons.
     if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
       updaterVehicle->update_vehicle_preintegrated_differential(state, last_cam_timestamp, last_prop_time_offset);

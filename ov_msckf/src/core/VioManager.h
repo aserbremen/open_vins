@@ -66,7 +66,7 @@ namespace ov_msckf {
 class VioManager {
 
   // OVVU: Make this a friend class so that ROS1Visualizer can acccess updaterVehicle to check for vehicle updates.
-  friend class ROS1Visualizer; // ASTODO maybe use getter instead
+  friend class ROS1Visualizer;
   friend class ROS2Visualizer;
 
 public:

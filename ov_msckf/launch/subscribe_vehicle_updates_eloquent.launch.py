@@ -98,13 +98,7 @@ launch_args = [
     DeclareLaunchArgument(
         name="vehicle_update_mode",
         default_value="VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK",
-        description="Which variant of vehicle related updates to be used.",
-        choices=["VEHICLE_UPDATE_NONE",
-                 "VEHICLE_UPDATE_SPEED_PROPAGATE",
-                 "VEHICLE_UPDATE_STEERING_PROPAGATE",
-                 "VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE",
-                 "VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK",
-                 "VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL"]),
+        description="Which variant of vehicle related updates to be used."),
     DeclareLaunchArgument(
         name="use_yaw_odom_second_order",
         default_value="true",
@@ -116,8 +110,7 @@ launch_args = [
     DeclareLaunchArgument(
         name="speed_update_mode",
         default_value="SPEED_UPDATE_VECTOR",
-        description="SPEED_UPDATE_VECTOR introduces pseudo measurements for y- and z-component and sets the to zero. SPEED_UPDATE_X only updates speed in x-direction.",
-        choices=["SPEED_UPDATE_VECTOR", "SPEED_UPDATE_X"]),
+        description="SPEED_UPDATE_VECTOR introduces pseudo measurements for y- and z-component and sets the to zero. SPEED_UPDATE_X only updates speed in x-direction."),
     DeclareLaunchArgument(
         name="sigma_speed_x",
         default_value="0.1",
@@ -198,9 +191,8 @@ def launch_setup(context):
             ]
     node1 = Node(
         package="ov_msckf",
-        executable="run_subscribe_msckf",
+        node_executable="run_subscribe_msckf",
         condition=IfCondition(LaunchConfiguration("ov_enable")),
-        namespace=LaunchConfiguration("namespace"),
         output='screen',
         parameters=[
             {"verbosity": LaunchConfiguration("verbosity")},
@@ -241,7 +233,7 @@ def launch_setup(context):
 
     node2 = Node(
         package="rviz2",
-        executable="rviz2",
+        node_executable="rviz2",
         condition=IfCondition(LaunchConfiguration("rviz_enable")),
         arguments=[
             "-d"

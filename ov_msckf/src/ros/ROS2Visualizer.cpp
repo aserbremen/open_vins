@@ -41,10 +41,6 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   PRINT_DEBUG("Publishing: %s\n", pub_odomimu->get_topic_name());
   pub_pathimu = node->create_publisher<nav_msgs::msg::Path>("/ov_msckf/pathimu", 2);
   PRINT_DEBUG("Publishing: %s\n", pub_pathimu->get_topic_name());
-  // OVVU: Also publish pose without covariance information to analyze with https://github.com/uzh-rpg/rpg_trajectory_evaluation
-  // ASTODO remove this, as we can get the information from Odometry or PoseWithCovarianceStamped message
-  pub_poseimu_no_cov = node->create_publisher<geometry_msgs::msg::PoseStamped>("/ov_msckf/poseimu_no_cov", 2);
-  PRINT_DEBUG("Publishing: %s\n", pub_poseimu_no_cov->get_topic_name());
 
   // 3D points publishing
   pub_points_msckf = node->create_publisher<sensor_msgs::msg::PointCloud2>("/ov_msckf/points_msckf", 2);
@@ -444,10 +440,30 @@ void ROS2Visualizer::callback_inertial(const sensor_msgs::msg::Imu::SharedPtr ms
     size_t num_unique_cameras = (params.state_options.num_cameras == 2) ? 1 : params.state_options.num_cameras;
     if (unique_cam_ids.size() == num_unique_cameras) {
 
+      // OVVU: In case of vehicle updates we should only loop through camera messages if we have one Ackermann drive, or wheel speeds
+      // measurement greater than the time we will propagate to and perform the visual update at. Also only do this once we have reached max
+      // clone size for stability reasons.
+      bool process_cam = true;
+      double time_cam_inI = camera_queue.at(0).timestamp + _app->state->_calib_dt_CAMtoIMU->value()(0);
+      if (_app->updaterVehicle != nullptr && (int)_app->get_state()->_clones_IMU.size() == _app->get_state()->_options.max_clone_size) {
+        // OVVU: In case we use ackermann drive messages, check if we have one Ackermann drive message that is newer than the time we would
+        // propagate to in the visual update, since we need to interpolate the Ackermann drive message at that time.
+        if (params.use_ackermann_drive_measurements && !_app->ackermann_drive_queue.empty() &&
+            _app->updaterVehicle->get_ackermann_drive_data().back().timestamp < time_cam_inI) {
+          process_cam = false;
+        }
+        // OVVU: In case we use wheel speeds messages, check if we have one wheel speeds message that is newer than the time we would
+        // propagate to in the visual update, since we need to interpolate the wheel speeds message at that time.
+        if (params.use_wheel_speeds_measurements && !_app->updaterVehicle->get_wheel_speeds_data().empty() &&
+            _app->updaterVehicle->get_wheel_speeds_data().back().timestamp < time_cam_inI) {
+          process_cam = false;
+        }
+      }
+
       // Loop through our queue and see if we are able to process any of our camera measurements
       // We are able to process if we have at least one IMU measurement greater than the camera time
       double timestamp_imu_inC = message.timestamp - _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
-      while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC) {
+      while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC && process_cam) {
         auto rT0_1 = boost::posix_time::microsec_clock::local_time();
         _app->feed_measurement_camera(camera_queue.at(0));
         visualize();

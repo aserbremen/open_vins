@@ -404,23 +404,28 @@ void ROS1Visualizer::callback_inertial(const sensor_msgs::Imu::ConstPtr &msg) {
     size_t num_unique_cameras = (params.state_options.num_cameras == 2) ? 1 : params.state_options.num_cameras;
     if (unique_cam_ids.size() == num_unique_cameras) {
 
-      // Loop through our queue and see if we are able to process any of our camera measurements
-      // We are able to process if we have at least one IMU measurement greater than the camera time
-      // OVVU: In case of vehicle updates we should go into this loop if we have one ackermann drive, or wheel speeds measurement greater
-      // than the time we will propagate to and update with. Also only do this once we have reached max clone size for stability reasons.
+      // OVVU: In case of vehicle updates we should only loop through camera messages if we have one Ackermann drive, or wheel speeds
+      // measurement greater than the time we will propagate to and perform the visual update at. Also only do this once we have reached max
+      // clone size for stability reasons.
       bool process_cam = true;
-      double time1 = camera_queue.at(0).timestamp + _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
+      double time_cam_inI = camera_queue.at(0).timestamp + _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
       if (_app->updaterVehicle != nullptr && (int)_app->get_state()->_clones_IMU.size() == _app->get_state()->_options.max_clone_size) {
+        // OVVU: In case we use ackermann drive messages, check if we have one Ackermann drive message that is newer than the time we would
+        // propagate to in the visual update, since we need to interpolate the Ackermann drive message at that time.
         if (params.use_ackermann_drive_measurements && !_app->ackermann_drive_queue.empty() &&
-            _app->ackermann_drive_queue.back().timestamp < time1) {
+            _app->ackermann_drive_queue.back().timestamp < time_cam_inI) {
           process_cam = false;
         }
-
+        // OVVU: In case we use wheel speeds messages, check if we have one wheel speeds message that is newer than the time we would
+        // propagate to in the visual update, since we need to interpolate the wheel speeds message at that time.
         if (params.use_wheel_speeds_measurements && !_app->updaterVehicle->get_wheel_speeds_data().empty() &&
-            _app->updaterVehicle->get_wheel_speeds_data().back().timestamp < time1) {
+            _app->updaterVehicle->get_wheel_speeds_data().back().timestamp < time_cam_inI) {
           process_cam = false;
         }
       }
+
+      // Loop through our queue and see if we are able to process any of our camera measurements
+      // We are able to process if we have at least one IMU measurement greater than the camera time
       double timestamp_imu_inC = message.timestamp - _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
       while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC && process_cam) {
         auto rT0_1 = boost::posix_time::microsec_clock::local_time();

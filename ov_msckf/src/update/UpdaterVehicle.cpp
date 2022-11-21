@@ -489,7 +489,6 @@ void UpdaterVehicle::update_vehicle_preintegrated_differential(std::shared_ptr<S
     // Jacobian of g wrt preintegrated odometry state: G_odom = (\partial g) / (\partial u), u = [dyaw_last dx_last dy_last]^T
     Eigen::Matrix3d G_odom = Eigen::Matrix3d::Identity();
     if (_use_yaw_jacobi_second_order) {
-      // ASTODO for now simply use first order derivation
       // Entries wrt wheel_speed_rear_left
       H_odom(0, 0) = dt / _track_length;
       H_odom(1, 0) = dt * std::cos(dyaw_last) / 2.0;
@@ -680,15 +679,12 @@ std::vector<ov_core::AckermannDriveData> UpdaterVehicle::select_ackermann_drive_
     }
   }
 
-  // ASTODO we might need to extrapolate steering and speed measurements into the future, because might not have a speed/steering message
-  // that is newer than time1
-
   // Some debug output
-  // PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
-  // for (size_t i = 0; i < ackermann_drive_data_preintegration.size(); i++) {
-  //   PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): ackermann_drive_data_preintegration #%d t = %.9f\n" RESET, (int)i,
-  //               ackermann_drive_data_preintegration[i].timestamp);
-  // }
+  PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
+  for (size_t i = 0; i < ackermann_drive_data_preintegration.size(); i++) {
+    PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): ackermann_drive_data_preintegration #%d t = %.9f\n" RESET, (int)i,
+                ackermann_drive_data_preintegration[i].timestamp);
+  }
 
   // Check that we have at least one measurement to propagate with
   if (ackermann_drive_data_preintegration.empty()) {
@@ -841,15 +837,12 @@ std::vector<ov_core::WheelSpeedsData> UpdaterVehicle::select_wheel_speeds_readin
     }
   }
 
-  // ASTODO we might need to extrapolate steering and speed measurements into the future, because might not have a speed/steering message
-  // that is newer than time1
-
   // Some debug output
-  // PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
-  // for (size_t i = 0; i < wheel_speeds_data_preintegration.size(); i++) {
-  //   PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): wheel_speeds_data_preintegration #%d t = %.9f\n" RESET, (int)i,
-  //               wheel_speeds_data_preintegration[i].timestamp);
-  // }
+  PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
+  for (size_t i = 0; i < wheel_speeds_data_preintegration.size(); i++) {
+    PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): wheel_speeds_data_preintegration #%d t = %.9f\n" RESET, (int)i,
+                wheel_speeds_data_preintegration[i].timestamp);
+  }
 
   // Check that we have at least one measurement to propagate with
   if (wheel_speeds_data_preintegration.empty()) {

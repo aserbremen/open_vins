@@ -23,8 +23,8 @@ dt_slam_delay: 3 # delay before initializing (helps with stability from bad init
 gravity_mag: 9.81 # magnitude of gravity in this location
 
 feat_rep_msckf: "GLOBAL_3D"
-feat_rep_slam: "ANCHORED_MSCKF_INVERSE_DEPTH"
-feat_rep_aruco: "ANCHORED_MSCKF_INVERSE_DEPTH"
+feat_rep_slam: "ANCHORED_FULL_INVERSE_DEPTH"
+feat_rep_aruco: "ANCHORED_FULL_INVERSE_DEPTH"
 
 # zero velocity update parameters we can use
 # we support either IMU-based or disparity detection.
