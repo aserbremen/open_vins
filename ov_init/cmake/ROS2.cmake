@@ -60,19 +60,22 @@ ament_export_libraries(ov_init_lib)
 # Make binary files!
 ##################################################
 
+# OVVU: On Ubuntu 20.04 ros2 foxy, we have to link ov_core against the executables, 
+# for some reason after adding custom wheel speeds msg in ov_core.
+
 add_executable(test_simulation src/test_simulation.cpp)
 ament_target_dependencies(test_simulation ${ament_libraries})
-target_link_libraries(test_simulation ov_init_lib ${thirdparty_libraries})
+target_link_libraries(test_simulation ov_init_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS test_simulation DESTINATION lib/${PROJECT_NAME})
 
 add_executable(test_dynamic_mle src/test_dynamic_mle.cpp)
 ament_target_dependencies(test_dynamic_mle ${ament_libraries})
-target_link_libraries(test_dynamic_mle ov_init_lib ${thirdparty_libraries})
+target_link_libraries(test_dynamic_mle ov_init_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS test_dynamic_mle DESTINATION lib/${PROJECT_NAME})
 
 add_executable(test_dynamic_init src/test_dynamic_init.cpp)
 ament_target_dependencies(test_dynamic_init ${ament_libraries})
-target_link_libraries(test_dynamic_init ov_init_lib ${thirdparty_libraries})
+target_link_libraries(test_dynamic_init ov_init_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS test_dynamic_init DESTINATION lib/${PROJECT_NAME})
 
 # Install launch and config directories

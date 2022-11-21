@@ -22,6 +22,10 @@
 #ifndef OV_MSCKF_ROS2VISUALIZER_H
 #define OV_MSCKF_ROS2VISUALIZER_H
 
+// OVVU
+#include <ackermann_msgs/msg/ackermann_drive_stamped.hpp>
+#include <ov_core/msg/wheel_speeds.hpp>
+
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
@@ -111,6 +115,12 @@ public:
   void callback_stereo(const sensor_msgs::msg::Image::ConstSharedPtr msg0, const sensor_msgs::msg::Image::ConstSharedPtr msg1, int cam_id0,
                        int cam_id1);
 
+  /// OVVU: Callback for Ackermann drive information
+  void callback_ackermann_drive(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg);
+
+  // /// OVVU: Callback for wheel speeds information
+  void callback_wheel_speeds(const ov_core::msg::WheelSpeeds::SharedPtr msg);
+
 protected:
   /// Publish the current state
   void publish_state();
@@ -153,6 +163,9 @@ protected:
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image> sync_pol;
   std::vector<std::shared_ptr<message_filters::Synchronizer<sync_pol>>> sync_cam;
   std::vector<std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>>> sync_subs_cam;
+  // OVVU: Out subscribers for Ackermann drive and wheel speeds messages
+  rclcpp::Subscription<ackermann_msgs::msg::AckermannDriveStamped>::SharedPtr sub_ackermann_drive;
+  rclcpp::Subscription<ov_core::msg::WheelSpeeds>::SharedPtr sub_wheel_speeds;
 
   // For path viz
   std::vector<geometry_msgs::msg::PoseStamped> poses_imu;
@@ -197,6 +210,9 @@ protected:
   // Files and if we should save total state
   bool save_total_state;
   std::ofstream of_state_est, of_state_std, of_state_gt;
+
+  // OVVU: Add file stream for odometry results only (translation, rotation) in the rpg trajectory evaluation format
+  std::ofstream of_pose_est_rpg;
 };
 
 } // namespace ov_msckf

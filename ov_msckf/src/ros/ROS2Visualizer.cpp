@@ -85,32 +85,46 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
   }
 
   // Load if we should save the total state to file
-  node->declare_parameter<bool>("save_total_state", false);
-  node->get_parameter("save_total_state", save_total_state);
+  // OVVU: Check return value to determine whether save_total_state is already declared
+  if (!node->get_parameter("save_total_state", save_total_state)) {
+    node->declare_parameter<bool>("save_total_state", false);
+    node->get_parameter("save_total_state", save_total_state);
+  }
 
   // If the file is not open, then open the file
   if (save_total_state) {
 
     // files we will open
-    std::string filepath_est, filepath_std, filepath_gt;
+    std::string filepath_est, filepath_std, filepath_gt, filepath_pose_est_rpg;
     node->declare_parameter<std::string>("filepath_est", "state_estimate.txt");
     node->declare_parameter<std::string>("filepath_std", "state_deviation.txt");
     node->declare_parameter<std::string>("filepath_gt", "state_groundtruth.txt");
+    // OVVU: Additionally save the odometry results without covariance
+    if (!node->get_parameter("filepath_pose_est_rpg", filepath_pose_est_rpg)) {
+      node->declare_parameter<std::string>("filepath_pose_est_rpg", "stamped_traj_est.txt");
+    }
     node->get_parameter<std::string>("filepath_est", filepath_est);
     node->get_parameter<std::string>("filepath_std", filepath_std);
     node->get_parameter<std::string>("filepath_gt", filepath_gt);
+    node->get_parameter<std::string>("filepath_pose_est_rpg", filepath_pose_est_rpg);
+
+    std::cout << filepath_pose_est_rpg << std::endl;
 
     // If it exists, then delete it
     if (boost::filesystem::exists(filepath_est))
       boost::filesystem::remove(filepath_est);
     if (boost::filesystem::exists(filepath_std))
       boost::filesystem::remove(filepath_std);
+    if (boost::filesystem::exists(filepath_pose_est_rpg))
+      boost::filesystem::remove(filepath_pose_est_rpg);
 
     // Open the files
     of_state_est.open(filepath_est.c_str());
     of_state_std.open(filepath_std.c_str());
+    of_pose_est_rpg.open(filepath_pose_est_rpg.c_str());
     of_state_est << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans .... etc" << std::endl;
     of_state_std << "# timestamp(s) q p v bg ba cam_imu_dt num_cam cam0_k cam0_d cam0_rot cam0_trans .... etc" << std::endl;
+    of_pose_est_rpg << "# timestamp(s) tx ty tz qx qy qz qw" << std::endl;
 
     // Groundtruth if we are simulating
     if (_sim != nullptr) {
@@ -177,6 +191,29 @@ void ROS2Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
       PRINT_DEBUG("subscribing to cam (mono): %s", cam_topic.c_str());
     }
   }
+
+  // OVVU: Setup subcribers for vehicle-related updates
+  if (_app->params.use_ackermann_drive_measurements) {
+    // Read in the topic
+    std::string topic_ackermann_drive;
+    _node->declare_parameter<std::string>("topic_ackermann_drive", "/ackermann0");
+    _node->get_parameter("topic_ackermann_drive", topic_ackermann_drive);
+    parser->parse_config("topic_ackermann_drive", topic_ackermann_drive, true);
+    sub_ackermann_drive = _node->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(
+        topic_ackermann_drive, 500, std::bind(&ROS2Visualizer::callback_ackermann_drive, this, std::placeholders::_1));
+    PRINT_DEBUG("subscribing to ackermann drive: %s", topic_ackermann_drive.c_str());
+  }
+
+  if (_app->params.use_wheel_speeds_measurements) {
+    // Read in the topic
+    std::string topic_wheel_speeds;
+    _node->declare_parameter<std::string>("topic_wheel_speeds", "/wheel_speeds0");
+    _node->get_parameter("topic_wheel_speeds", topic_wheel_speeds);
+    parser->parse_config("topic_wheel_speeds", topic_wheel_speeds, true);
+    sub_wheel_speeds = _node->create_subscription<ov_core::msg::WheelSpeeds>(
+        topic_wheel_speeds, 500, std::bind(&ROS2Visualizer::callback_wheel_speeds, this, std::placeholders::_1));
+    PRINT_DEBUG("subscribing to ackermann drive: %s", topic_wheel_speeds.c_str());
+  }
 }
 
 void ROS2Visualizer::visualize() {
@@ -218,6 +255,15 @@ void ROS2Visualizer::visualize() {
   // Save total state
   if (save_total_state) {
     RosVisualizerHelper::sim_save_total_state_to_file(_app->get_state(), _sim, of_state_est, of_state_std, of_state_gt);
+    // OVVU: write pose results in rpg trajectory evaluation format
+    const auto &state = _app->get_state();
+    of_pose_est_rpg.precision(6);
+    of_pose_est_rpg.setf(std::ios::fixed, std::ios::floatfield);
+    of_pose_est_rpg << state->_timestamp << " ";
+    of_pose_est_rpg << state->_imu->pos().x() << " " << state->_imu->pos().y() << " " << state->_imu->pos().z() << " ";
+    of_pose_est_rpg << state->_imu->quat().x() << " " << state->_imu->quat().y() << " " << state->_imu->quat().z() << " "
+                    << state->_imu->quat().w();
+    of_pose_est_rpg << std::endl;
   }
 
   // Print how much time it took to publish / displaying things
@@ -394,10 +440,30 @@ void ROS2Visualizer::callback_inertial(const sensor_msgs::msg::Imu::SharedPtr ms
     size_t num_unique_cameras = (params.state_options.num_cameras == 2) ? 1 : params.state_options.num_cameras;
     if (unique_cam_ids.size() == num_unique_cameras) {
 
+      // OVVU: In case of vehicle updates we should only loop through camera messages if we have one Ackermann drive, or wheel speeds
+      // measurement greater than the time we will propagate to and perform the visual update at. Also only do this once we have reached max
+      // clone size for stability reasons.
+      bool process_cam = true;
+      double time_cam_inI = camera_queue.at(0).timestamp + _app->state->_calib_dt_CAMtoIMU->value()(0);
+      if (_app->updaterVehicle != nullptr && (int)_app->get_state()->_clones_IMU.size() == _app->get_state()->_options.max_clone_size) {
+        // OVVU: In case we use ackermann drive messages, check if we have one Ackermann drive message that is newer than the time we would
+        // propagate to in the visual update, since we need to interpolate the Ackermann drive message at that time.
+        if (params.use_ackermann_drive_measurements && !_app->ackermann_drive_queue.empty() &&
+            _app->updaterVehicle->get_ackermann_drive_data().back().timestamp < time_cam_inI) {
+          process_cam = false;
+        }
+        // OVVU: In case we use wheel speeds messages, check if we have one wheel speeds message that is newer than the time we would
+        // propagate to in the visual update, since we need to interpolate the wheel speeds message at that time.
+        if (params.use_wheel_speeds_measurements && !_app->updaterVehicle->get_wheel_speeds_data().empty() &&
+            _app->updaterVehicle->get_wheel_speeds_data().back().timestamp < time_cam_inI) {
+          process_cam = false;
+        }
+      }
+
       // Loop through our queue and see if we are able to process any of our camera measurements
       // We are able to process if we have at least one IMU measurement greater than the camera time
       double timestamp_imu_inC = message.timestamp - _app->get_state()->_calib_dt_CAMtoIMU->value()(0);
-      while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC) {
+      while (!camera_queue.empty() && camera_queue.at(0).timestamp < timestamp_imu_inC && process_cam) {
         auto rT0_1 = boost::posix_time::microsec_clock::local_time();
         _app->feed_measurement_camera(camera_queue.at(0));
         visualize();
@@ -510,6 +576,28 @@ void ROS2Visualizer::callback_stereo(const sensor_msgs::msg::Image::ConstSharedP
   std::lock_guard<std::mutex> lck(camera_queue_mtx);
   camera_queue.push_back(message);
   std::sort(camera_queue.begin(), camera_queue.end());
+}
+
+void ROS2Visualizer::callback_ackermann_drive(const ackermann_msgs::msg::AckermannDriveStamped::SharedPtr msg) {
+  // OVVU: Convert into the correct format
+  ov_core::AckermannDriveData message;
+  message.timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
+  message.speed = msg->drive.speed;
+  message.steering_angle = msg->drive.steering_angle;
+  // Send it to our VIO system
+  _app->feed_measurement_ackermann_drive(message);
+}
+
+void ROS2Visualizer::callback_wheel_speeds(const ov_core::msg::WheelSpeeds::SharedPtr msg) {
+  // OVVU: Convert into the correct format
+  ov_core::WheelSpeedsData message;
+  message.timestamp = msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9;
+  message.wheel_front_left = msg->wheel_front_left;
+  message.wheel_front_right = msg->wheel_front_right;
+  message.wheel_rear_left = msg->wheel_rear_left;
+  message.wheel_rear_right = msg->wheel_rear_right;
+  // Send it to our VIO system
+  _app->feed_measurement_wheel_speeds(message);
 }
 
 void ROS2Visualizer::publish_state() {

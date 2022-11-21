@@ -66,49 +66,52 @@ ament_export_libraries(ov_eval_lib)
 #    target_link_libraries(live_align_trajectory ov_eval_lib ${thirdparty_libraries})
 #endif ()
 
+# OVVU: On Ubuntu 20.04 ros2 foxy, we have to link ov_core against the executables, 
+# for some reason after adding custom wheel speeds msg in ov_core.
+
 add_executable(format_converter src/format_converter.cpp)
 ament_target_dependencies(format_converter rclcpp ov_core)
-target_link_libraries(format_converter ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(format_converter ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS format_converter DESTINATION lib/${PROJECT_NAME})
 
 add_executable(error_comparison src/error_comparison.cpp)
 ament_target_dependencies(error_comparison rclcpp ov_core)
-target_link_libraries(error_comparison ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(error_comparison ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS error_comparison DESTINATION lib/${PROJECT_NAME})
 
 add_executable(error_dataset src/error_dataset.cpp)
 ament_target_dependencies(error_dataset rclcpp ov_core)
-target_link_libraries(error_dataset ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(error_dataset ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS error_dataset DESTINATION lib/${PROJECT_NAME})
 
 add_executable(error_singlerun src/error_singlerun.cpp)
 ament_target_dependencies(error_singlerun rclcpp ov_core)
-target_link_libraries(error_singlerun ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(error_singlerun ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS error_singlerun DESTINATION lib/${PROJECT_NAME})
 
 add_executable(error_simulation src/error_simulation.cpp)
 ament_target_dependencies(error_simulation rclcpp ov_core)
-target_link_libraries(error_simulation ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(error_simulation ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS error_simulation DESTINATION lib/${PROJECT_NAME})
 
 add_executable(timing_flamegraph src/timing_flamegraph.cpp)
 ament_target_dependencies(timing_flamegraph rclcpp ov_core)
-target_link_libraries(timing_flamegraph ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(timing_flamegraph ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS timing_flamegraph DESTINATION lib/${PROJECT_NAME})
 
 add_executable(timing_comparison src/timing_comparison.cpp)
 ament_target_dependencies(timing_comparison rclcpp ov_core)
-target_link_libraries(timing_comparison ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(timing_comparison ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS timing_comparison DESTINATION lib/${PROJECT_NAME})
 
 add_executable(timing_percentages src/timing_percentages.cpp)
 ament_target_dependencies(timing_percentages rclcpp ov_core)
-target_link_libraries(timing_percentages ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(timing_percentages ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS timing_percentages DESTINATION lib/${PROJECT_NAME})
 
 add_executable(plot_trajectories src/plot_trajectories.cpp)
 ament_target_dependencies(plot_trajectories rclcpp ov_core)
-target_link_libraries(plot_trajectories ov_eval_lib ${thirdparty_libraries})
+target_link_libraries(plot_trajectories ov_eval_lib ${thirdparty_libraries} ${ov_core_LIBRARIES})
 install(TARGETS plot_trajectories DESTINATION lib/${PROJECT_NAME})
 
 

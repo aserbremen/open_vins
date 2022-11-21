@@ -160,8 +160,8 @@ public:
   void update_steering(std::shared_ptr<State> state, const ov_core::AckermannDriveData &ackermann_drive_message);
 
   /**
-   * @brief Updates the filter using a single-track model in a preintegrated fashion. ASTODO see ref for further information.  // ASTODO
-   doxygen
+   * @brief Updates the filter using a Ackermann (single-track) model in a preintegrated fashion. All Ackermann drive messages between two
+   * camera times are used to calculate the vehicle's 2D-odometry and perform an update. See https://ieeexplore.ieee.org/document/9841243
    * @param state State of the filter
    * @param speed_data Speed measurements
    * @param steering_wheel_data Steering wheel measurements
@@ -169,8 +169,8 @@ public:
   void update_vehicle_preintegrated(std::shared_ptr<State> state, double last_cam_timestamp, double last_prop_time_offset);
 
   /**
-   * @brief Updates the filter using a differential drive modle in a preintegrated fashon. ASTODO see ref for further information. ASTODO
-   doxygen
+   * @brief Updates the filter using a differential drive model in a preintegrated fashon. All wheel speeds messages between two
+   * camera times are used to calculate the vehicle's 2D-odometry and perform an update. See https://ieeexplore.ieee.org/document/9841243/
    * @param state State of the filter
    * @param last_cam_timestamp Timestamp of last camera/visual update timestamp
    * @param last_prop_time_offset Time offset between camera and IMU at last camera/visual update timestamp
@@ -197,17 +197,23 @@ public:
 
   /**
    * @brief Linearly interpolates a number between two readings
-   * @param t0 First timestamp / x-value
-   * @param value0 First value / y-value
-   * @param t1 Second timestamp / x-value
-   * @param value1 Second value / y-value
-   * @param time Actual timestamp of the data to be interpolated at
+   * @param t0 First timestamp
+   * @param value0 First value
+   * @param t1 Second timestamp
+   * @param value1 Second value
+   * @param time Actual timestamp of the data to be interpolated at, t0 <= t <= t1
    * @return double
    */
   double interpolate_double(double t0, double value0, double t1, double value1, double time);
 
   /**
-   * @brief Get the wheel speeds data object
+   * @brief Get the ackermann drive data vector
+   * @return const std::vector<ov_core::AckermannDriveData>&
+   */
+  const std::vector<ov_core::AckermannDriveData> &get_ackermann_drive_data() { return ackermann_drive_data; }
+
+  /**
+   * @brief Get the wheel speeds data vector
    * @return const std::vector<ov_core::WheelSpeedsData>&
    */
   const std::vector<ov_core::WheelSpeedsData> &get_wheel_speeds_data() { return wheel_speeds_data; }

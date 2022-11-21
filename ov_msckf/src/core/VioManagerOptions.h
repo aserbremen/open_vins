@@ -534,11 +534,11 @@ struct VioManagerOptions {
   /// Convenience flag for using wheel speed measurements
   bool use_wheel_speeds_measurements = false;
 
-  /// Whether to use second order yaw in the calculation of the preintegrated odometry model,
+  /// Whether to use second order yaw kinematics in the calculation of the preintegrated odometry model,
   /// see eq (24)-(31) of Visual-Inertial-Wheel Odometry with Online Calibration
   bool use_yaw_odom_second_order = true;
 
-  /// Whether to use second order yaw in the Jacobian derivation of the preintegrated odometry model
+  /// Whether to use second order yaw kinematis in the Jacobian derivation of the preintegrated odometry model
   bool use_yaw_jacobi_second_order = false;
 
   /// Speed update
@@ -570,13 +570,13 @@ struct VioManagerOptions {
   }
 
   /// Vehicle speed x noise (m/s)
-  double sigma_speed_x = 0.01;
+  double sigma_speed_x = 0.1;
 
   /// Vehicle zero speed y noise (m/s)
-  double sigma_zero_speed_y = 0.1;
+  double sigma_zero_speed_y = 0.3;
 
   /// Vehicle zero speed y noise (m/s)
-  double sigma_zero_speed_z = 0.05;
+  double sigma_zero_speed_z = 0.3;
 
   /// Vehicle speed chi2 multiplier
   double vehicle_speed_chi2_multiplier = 1.0;

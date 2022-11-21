@@ -1,7 +1,7 @@
 %YAML:1.0 # need to specify the file type at the top!
 
 # OVVU
-verbosity: "DEBUG" # ALL, DEBUG, INFO, WARNING, ERROR, SILENT
+verbosity: "ALL" # ALL, DEBUG, INFO, WARNING, ERROR, SILENT
 
 use_fej: true # if first-estimate Jacobians should be used (enable for good consistency)
 use_imuavg: true # if using discrete integration, if we should average sequential IMU measurements to "smooth" it
@@ -23,8 +23,8 @@ dt_slam_delay: 3 # delay before initializing (helps with stability from bad init
 gravity_mag: 9.81 # magnitude of gravity in this location
 
 feat_rep_msckf: "GLOBAL_3D"
-feat_rep_slam: "ANCHORED_MSCKF_INVERSE_DEPTH"
-feat_rep_aruco: "ANCHORED_MSCKF_INVERSE_DEPTH"
+feat_rep_slam: "ANCHORED_FULL_INVERSE_DEPTH"
+feat_rep_aruco: "ANCHORED_FULL_INVERSE_DEPTH"
 
 # zero velocity update parameters we can use
 # we support either IMU-based or disparity detection.
@@ -67,7 +67,7 @@ record_timing_filepath: "/tmp/ov_traj_timing.txt" # https://docs.openvins.com/ev
 
 # if we want to save the simulation state and its diagional covariance
 # use this with rosrun ov_eval error_simulation
-save_total_state: false
+save_total_state: true
 filepath_est: "/tmp/ov_estimate.txt"
 filepath_std: "/tmp/ov_estimate_std.txt"
 filepath_gt: "/tmp/ov_groundtruth.txt"
@@ -129,6 +129,8 @@ ackermann_drive_msg_contains_steering_wheel_angle: true
 steering_ratio: 15.2
 max_steering_angle: 100.0
 track_length: 1.568
+ackermann_drive_topic: "/ackermann0"
+wheel_speeds_topic: "/wheel_speeds0"
 
 # imu and camera spacial-temporal
 # imu config should also have the correct noise values

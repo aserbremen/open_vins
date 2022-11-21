@@ -12,6 +12,18 @@ if (NOT ENABLE_ROS)
 endif ()
 add_definitions(-DROS_AVAILABLE=2)
 
+# OVVU: Custom message generation
+find_package(std_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+        msg/WheelSpeeds.msg
+        msg/WheelPulses.msg
+        DEPENDENCIES std_msgs
+)
+
+ament_export_dependencies(rosidl_default_runtime)
+
 # Include our header files
 include_directories(
         src
@@ -44,7 +56,7 @@ list(APPEND LIBRARY_SOURCES
 )
 file(GLOB_RECURSE LIBRARY_HEADERS "src/*.h")
 add_library(ov_core_lib SHARED ${LIBRARY_SOURCES} ${LIBRARY_HEADERS})
-ament_target_dependencies(ov_core_lib rclcpp cv_bridge)
+ament_target_dependencies(ov_core_lib rclcpp cv_bridge std_msgs)
 target_link_libraries(ov_core_lib ${thirdparty_libraries})
 target_include_directories(ov_core_lib PUBLIC src/)
 install(TARGETS ov_core_lib
@@ -71,6 +83,9 @@ ament_export_libraries(ov_core_lib)
 
 add_executable(test_webcam src/test_webcam.cpp)
 ament_target_dependencies(test_webcam rclcpp cv_bridge)
+# OVVU: The next line is needed if the custom wheel speeds/pulses messages are used within ov_core. Although that is not the case now, we leave it here.
+# https://docs.ros.org/en/foxy/Tutorials/Beginner-Client-Libraries/Single-Package-Define-And-Use-Interface.html#link-against-the-interface
+rosidl_target_interfaces(test_webcam ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(test_webcam ov_core_lib ${thirdparty_libraries})
 install(TARGETS test_webcam DESTINATION lib/${PROJECT_NAME})
 

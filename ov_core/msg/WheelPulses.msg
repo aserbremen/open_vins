@@ -1,4 +1,4 @@
-Header header
+std_msgs/Header header
 
 int32 wheel_front_left
 int32 wheel_front_right

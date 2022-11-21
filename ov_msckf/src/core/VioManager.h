@@ -66,7 +66,8 @@ namespace ov_msckf {
 class VioManager {
 
   // OVVU: Make this a friend class so that ROS1Visualizer can acccess updaterVehicle to check for vehicle updates.
-  friend class ROS1Visualizer; // ASTODO maybe use getter instead
+  friend class ROS1Visualizer;
+  friend class ROS2Visualizer;
 
 public:
   /**
@@ -354,7 +355,7 @@ protected:
   /// Our zero velocity tracker
   std::shared_ptr<UpdaterZeroVelocity> updaterZUPT;
 
-  /// OVVU: Our vehicle updater OVVU
+  /// OVVU: Our vehicle updater
   std::shared_ptr<UpdaterVehicle> updaterVehicle;
 
   /// OVVU: Queue up ackermann drive measurements
