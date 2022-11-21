@@ -308,9 +308,8 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     // OVVU: perform vehicle updates by propagating the state at sensor frequency of ackermann drive messages
     auto time_tmp_vehicle = boost::posix_time::microsec_clock::local_time();
     time_vehicle_update = 0;
-    if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_PROPAGATE ||
-        params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING_PROPAGATE ||
-        params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE) {
+    if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED || params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING ||
+        params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING) {
       while (updaterVehicle != nullptr && !ackermann_drive_queue.empty()) {
         // OVVU: Perform vehicle updates when max clones are reached for stability reasons
         if ((int)state->_clones_IMU.size() == state->_options.max_clone_size &&
@@ -325,8 +324,8 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
           }
           auto time_tmp_vehicle = boost::posix_time::microsec_clock::local_time();
           // Perform speed udpate
-          if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_PROPAGATE ||
-              params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE) {
+          if (params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED ||
+              params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING) {
             if (params.speed_update_mode == params.SPEED_UPDATE_VECTOR) {
               updaterVehicle->update_speed_vector(state, ackermann_drive_queue.front());
             } else if (params.speed_update_mode == params.SPEED_UPDATE_X) {
@@ -334,8 +333,8 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
             }
           }
           // Perform steering udpate
-          if (params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING_PROPAGATE ||
-              params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE) {
+          if (params.vehicle_update_mode == params.VEHICLE_UPDATE_STEERING ||
+              params.vehicle_update_mode == params.VEHICLE_UPDATE_SPEED_AND_STEERING) {
             updaterVehicle->update_steering(state, ackermann_drive_queue.front());
           }
           time_vehicle_update += (boost::posix_time::microsec_clock::local_time() - time_tmp_vehicle).total_microseconds() * 1e-6;
@@ -363,11 +362,11 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     // if max clones are reached for stability reasons.
     if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
-      updaterVehicle->update_vehicle_preintegrated(state, last_cam_timestamp, last_prop_time_offset);
+      updaterVehicle->update_vehicle_preintegrated_single_track(state, last_cam_timestamp, last_prop_time_offset);
     }
     // Perform preintegrated vehicle update using differential drive model after cloning the propagated state. Also only perform the update
     // if max clones are reached for stability reasons.
-    if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL &&
+    if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
       updaterVehicle->update_vehicle_preintegrated_differential(state, last_cam_timestamp, last_prop_time_offset);
     }

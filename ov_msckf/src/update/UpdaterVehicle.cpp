@@ -90,7 +90,6 @@ void UpdaterVehicle::update_speed_vector(std::shared_ptr<State> state, const ov_
 
   // Finally perform the EKF update
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
-  _last_speed_state_timestamp = ackermann_drive_message.timestamp;
 }
 
 void UpdaterVehicle::update_speed_x(std::shared_ptr<State> state, const ov_core::AckermannDriveData &ackermann_drive_message) {
@@ -149,7 +148,6 @@ void UpdaterVehicle::update_speed_x(std::shared_ptr<State> state, const ov_core:
 
   // Finally perform the EKF update
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
-  _last_speed_state_timestamp = ackermann_drive_message.timestamp;
 }
 
 void UpdaterVehicle::update_steering(std::shared_ptr<State> state, const ov_core::AckermannDriveData &ackermann_drive_message) {
@@ -262,10 +260,10 @@ void UpdaterVehicle::update_steering(std::shared_ptr<State> state, const ov_core
 
   // Finally perform the EKF update
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
-  _last_steering_state_timestamp = ackermann_drive_message.timestamp;
 }
 
-void UpdaterVehicle::update_vehicle_preintegrated(std::shared_ptr<State> state, double last_cam_timestamp, double last_prop_time_offset) {
+void UpdaterVehicle::update_vehicle_preintegrated_single_track(std::shared_ptr<State> state, double last_cam_timestamp,
+                                                               double last_prop_time_offset) {
 
   // Gather speed and steering messages, asssume IMU and CAN are synchronized, so that we still need to account for time offset between IMU
   // and cam

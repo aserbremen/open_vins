@@ -490,15 +490,15 @@ struct VioManagerOptions {
     // Basic OpenVINS algorithm without vehicle updates
     VEHICLE_UPDATE_NONE,
     // Basic OpenVINS algorithm with speed update, propagating the state at every speed measurement
-    VEHICLE_UPDATE_SPEED_PROPAGATE,
+    VEHICLE_UPDATE_SPEED,
     // Basic OpenVINS algorithm with steering update, propagating the state at every steering measurement
-    VEHICLE_UPDATE_STEERING_PROPAGATE,
+    VEHICLE_UPDATE_STEERING,
     // Basic OpenVINS algorithm with speed and steering update, propagating the state at every speed and steering measurement
-    VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE,
+    VEHICLE_UPDATE_SPEED_AND_STEERING,
     // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using single track model
     VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK,
     // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using differential drive model
-    VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL,
+    VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE,
     // When the mode is not known we exit the program
     VEHICLE_UPDATE_UNKNOWN,
   };
@@ -513,16 +513,16 @@ struct VioManagerOptions {
     // vehicle_update_mode_string = mode;
     if (mode == "VEHICLE_UPDATE_NONE") {
       return VEHICLE_UPDATE_NONE;
-    } else if (mode == "VEHICLE_UPDATE_SPEED_PROPAGATE") {
-      return VEHICLE_UPDATE_SPEED_PROPAGATE;
-    } else if (mode == "VEHICLE_UPDATE_STEERING_PROPAGATE") {
-      return VEHICLE_UPDATE_STEERING_PROPAGATE;
-    } else if (mode == "VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE") {
-      return VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE;
+    } else if (mode == "VEHICLE_UPDATE_SPEED") {
+      return VEHICLE_UPDATE_SPEED;
+    } else if (mode == "VEHICLE_UPDATE_STEERING") {
+      return VEHICLE_UPDATE_STEERING;
+    } else if (mode == "VEHICLE_UPDATE_SPEED_AND_STEERING") {
+      return VEHICLE_UPDATE_SPEED_AND_STEERING;
     } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK") {
       return VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK;
-    } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL") {
-      return VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL;
+    } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE") {
+      return VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE;
     } else {
       return VEHICLE_UPDATE_UNKNOWN;
     }
@@ -630,13 +630,12 @@ struct VioManagerOptions {
         std::exit(EXIT_FAILURE);
       }
       // Set the convenience flag for handling Ackermann drive measurements
-      if (vehicle_update_mode == VEHICLE_UPDATE_SPEED_PROPAGATE || vehicle_update_mode == VEHICLE_UPDATE_STEERING_PROPAGATE ||
-          vehicle_update_mode == VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE ||
-          vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK) {
+      if (vehicle_update_mode == VEHICLE_UPDATE_SPEED || vehicle_update_mode == VEHICLE_UPDATE_STEERING ||
+          vehicle_update_mode == VEHICLE_UPDATE_SPEED_AND_STEERING || vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK) {
         use_ackermann_drive_measurements = true;
       }
       // Set convenience flag for handling wheel speeds measurements
-      if (vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL) {
+      if (vehicle_update_mode == VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE) {
         use_wheel_speeds_measurements = true;
       }
 

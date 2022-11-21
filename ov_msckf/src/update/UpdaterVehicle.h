@@ -166,7 +166,7 @@ public:
    * @param speed_data Speed measurements
    * @param steering_wheel_data Steering wheel measurements
    */
-  void update_vehicle_preintegrated(std::shared_ptr<State> state, double last_cam_timestamp, double last_prop_time_offset);
+  void update_vehicle_preintegrated_single_track(std::shared_ptr<State> state, double last_cam_timestamp, double last_prop_time_offset);
 
   /**
    * @brief Updates the filter using a differential drive model in a preintegrated fashon. All wheel speeds messages between two
@@ -239,9 +239,6 @@ protected:
 
   /// Speed update
 
-  /// Last timestamp we did speed update with
-  double _last_speed_state_timestamp = 0.0;
-
   /// Vehicle speed x noise (m/s)
   double _sigma_speed_x = 0.01;
 
@@ -267,9 +264,6 @@ protected:
 
   /// Our vector of IMU data
   std::vector<ov_core::ImuData> imu_data;
-
-  /// Last timestamp we did steering update with
-  double _last_steering_state_timestamp = 0.0;
 
   /// Steering angle variance noise (rad)
   double _sigma_steering_angle = 1.0 * M_PI / 180;
