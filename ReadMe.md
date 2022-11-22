@@ -1,6 +1,6 @@
 # OpenVINS Vehicle Updates
 
-This is the official implementation of the paper [Visual-Inertial Odometry aided by Speed and Steering Angle Measurements](https://ieeexplore.ieee.org/document/9841243). It enables OpenVINS to use speed, steering angle, and wheel speeds measurements in different variants for ground vehicles such as cars or wheeled robots. 
+This is the official implementation of the paper [Visual-Inertial Odometry aided by Speed and Steering Angle Measurements](https://ieeexplore.ieee.org/document/9841243). It enables OpenVINS to use speed, steering angle, and wheel speeds measurements in different variants for ground vehicles such as cars or wheeled robots. All edits to the code are marked with the string `OVVU`. This way it should be fairly easy to detect all changes.
 
 ## Usage
 This code is currently tested on Ubuntu 18.04 and ROS 1 melodic as well as ROS 2 eloquent and foxy the monocular camera IMU setup. Additional speed and steering measurements are supplied with a [stamped Ackermann drive message](http://docs.ros.org/en/jade/api/ackermann_msgs/html/msg/AckermannDriveStamped.html) available from standard ROS packages on the topic `/ackermann0`. When using wheel speed measurements and the differential drive model you need to use the [custom Wheel speeds message](https://github.com/aserbremen/open_vins/blob/master/ov_core/msg/WheelSpeeds.msg) on the topic `/wheel_speeds0` added to `ov_core` in the `msg` folder.
