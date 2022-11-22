@@ -101,7 +101,7 @@ ROS2Visualizer::ROS2Visualizer(std::shared_ptr<rclcpp::Node> node, std::shared_p
     node->declare_parameter<std::string>("filepath_gt", "state_groundtruth.txt");
     // OVVU: Additionally save the odometry results without covariance
     if (!node->get_parameter("filepath_pose_est_rpg", filepath_pose_est_rpg)) {
-      node->declare_parameter<std::string>("filepath_pose_est_rpg", "stamped_traj_est.txt");
+      node->declare_parameter<std::string>("filepath_pose_est_rpg", "stamped_traj_estimate.txt");
     }
     node->get_parameter<std::string>("filepath_est", filepath_est);
     node->get_parameter<std::string>("filepath_std", filepath_std);

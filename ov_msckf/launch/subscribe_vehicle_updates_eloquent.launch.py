@@ -56,10 +56,6 @@ launch_args = [
         default_value="true",
         description="Save the time it takes for each processing step."),
     DeclareLaunchArgument(
-        name="path_est",
-        default_value="/tmp/traj_estimate.txt",
-        description="Path of the saved trajectory in OpenVINS format including parts of the covariance."),
-    DeclareLaunchArgument(
         name="filepath_pose_est_rpg",
         default_value="/tmp/stamped_traj_estimate.txt",
         description="Path of the saved trajectory in RPG trajectory evaluation format excluding parts of the covariance."),
