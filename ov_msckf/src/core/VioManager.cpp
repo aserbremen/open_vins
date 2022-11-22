@@ -368,7 +368,7 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
     // if max clones are reached for stability reasons.
     if (updaterVehicle != nullptr && params.vehicle_update_mode == params.VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE &&
         (int)state->_clones_IMU.size() >= state->_options.max_clone_size) {
-      updaterVehicle->update_vehicle_preintegrated_differential(state, last_cam_timestamp, last_prop_time_offset);
+      updaterVehicle->update_vehicle_preintegrated_differential_drive(state, last_cam_timestamp, last_prop_time_offset);
     }
     time_vehicle_update = (boost::posix_time::microsec_clock::local_time() - time_tmp_vehicle).total_microseconds() * 1e-6;
   }

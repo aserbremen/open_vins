@@ -53,6 +53,8 @@
     <arg name="steering_ratio"                      default="15.2" />
     <arg name="max_steering_angle"                  default="100.0" />
     <arg name="track_length"                        default="1.568" />
+    <arg name="single_track_chi2_multiplier"        default="1.0" />
+    <arg name="differential_drive_chi2_multiplier"  default="1.0" />
 
     <!-- MASTER NODE! -->
 <!--    <node name="run_subscribe_msckf" pkg="ov_msckf" type="run_subscribe_msckf" output="screen" clear_params="true" required="true" launch-prefix="gdb -ex run &#45;&#45;args">-->
@@ -92,7 +94,10 @@
         <param name="steering_ratio"                      type="double"  value="$(arg steering_ratio)" />
         <param name="max_steering_angle"                  type="double"  value="$(arg max_steering_angle)" />
         <param name="track_length"                        type="double"  value="$(arg track_length)" />
-    </node>
+        <param name="single_track_chi2_multiplier"        type="double"  value="$(arg single_track_chi2_multiplier)"/>
+        <param name="differential_drive_chi2_multiplier"  type="double"  value="$(arg differential_drive_chi2_multiplier)"/>
+
+    </node>     <!-- MASTER NODE! -->
 
     <!-- play the dataset -->
     <group if="$(arg dobag)">

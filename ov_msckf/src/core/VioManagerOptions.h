@@ -605,6 +605,12 @@ struct VioManagerOptions {
 
   /// Other vehicle updates parameters
 
+  /// Single-track chi2 multiplier
+  double single_track_chi2_multiplier = 1.0;
+
+  /// Differential-drive chi2 multiplier
+  double differential_drive_chi2_multiplier = 1.0;
+
   /// External Calibration between odometry and IMU frame
   Eigen::Matrix<double, 7, 1> pose_OtoI;
 
@@ -661,6 +667,8 @@ struct VioManagerOptions {
       parser->parse_config("steering_ratio", steering_ratio, false);
       parser->parse_config("max_steering_angle", max_steering_angle, false);
       parser->parse_config("track_length", track_length, false);
+      parser->parse_config("single_track_chi2_multiplier", single_track_chi2_multiplier, false);
+      parser->parse_config("differential_drive_chi2_multiplier", differential_drive_chi2_multiplier, false);
     }
     PRINT_DEBUG("  - vehicle_update_mode: %s\n", vehicle_update_mode_string.c_str());
     PRINT_DEBUG("  - pose_OtoI quat %.6f %.6f %.6f %.6f\n", pose_OtoI[0], pose_OtoI[1], pose_OtoI[2], pose_OtoI[3]);
@@ -680,6 +688,8 @@ struct VioManagerOptions {
     PRINT_DEBUG("  - steering_ratio: %.3f\n", steering_ratio);
     PRINT_DEBUG("  - max_steering_angle: %.3f rad\n", max_steering_angle);
     PRINT_DEBUG("  - track_length: %.3f m\n", track_length);
+    PRINT_DEBUG("  - single_track_chi2_multiplier: %.3f\n", single_track_chi2_multiplier);
+    PRINT_DEBUG("  - differential_drive_chi2_multiplier: %.3f\n", differential_drive_chi2_multiplier);
   }
 };
 

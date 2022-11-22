@@ -75,6 +75,8 @@ public:
     _steering_ratio = manager_options.steering_ratio;
     _wheel_base = manager_options.wheel_base;
     _max_steering_angle = manager_options.max_steering_angle;
+    _single_track_chi2_multiplier = manager_options.single_track_chi2_multiplier;
+    _differential_drive_chi2_multiplier = manager_options.differential_drive_chi2_multiplier;
 
     // Initialize the chi squared test table with confidence level 0.95
     // https://github.com/KumarRobotics/msckf_vio/blob/050c50defa5a7fd9a04c1eed5687b405f02919b5/src/msckf_vio.cpp#L215-L221
@@ -175,7 +177,8 @@ public:
    * @param last_cam_timestamp Timestamp of last camera/visual update timestamp
    * @param last_prop_time_offset Time offset between camera and IMU at last camera/visual update timestamp
    */
-  void update_vehicle_preintegrated_differential(std::shared_ptr<State> state, double last_cam_timestamp, double last_prop_time_offset);
+  void update_vehicle_preintegrated_differential_drive(std::shared_ptr<State> state, double last_cam_timestamp,
+                                                       double last_prop_time_offset);
 
   /**
    * @brief Returns a vector of steering wheel readings for a preintegrated vehicle update using a single track drive.
@@ -299,6 +302,12 @@ protected:
 
   /// Whether to use second order yaw in the Jacobian derivation of the preintegrated odometry model
   bool _use_yaw_jacobi_second_order = false;
+
+  /// Single-track chi2 multiplier
+  double _single_track_chi2_multiplier = 1.0;
+
+  /// Differential-drive chi2 multiplier
+  double _differential_drive_chi2_multiplier = 1.0;
 };
 
 } // namespace ov_msckf

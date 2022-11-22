@@ -72,21 +72,21 @@ void UpdaterVehicle::update_speed_vector(std::shared_ptr<State> state, const ov_
   R(2, 2) = _sigma_zero_speed_z_2;
 
   // Get our Chi2 threshohld
-  // double chi2_check = chi_squared_table[res.rows()];
+  double chi2_check = chi_squared_table[res.rows()];
 
-  // // Chi2 distance test
-  // Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
-  // Eigen::MatrixXd S = H * P * H.transpose() + R;
-  // double chi2 = res.dot(S.llt().solve(res));
-  // Check against our thrshold
-  // if (chi2 > _vehicle_speed_chi2_multiplier * chi2_check) {
-  //   PRINT_DEBUG(RED "UpdaterVehicle::update_speed_vector(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
-  //               _vehicle_speed_chi2_multiplier * chi2_check);
-  // } else {
-  //   // Chi2 check succeeded
-  //   PRINT_DEBUG(GREEN "UpdaterVehicle::update_speed_vector(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
-  //               _vehicle_speed_chi2_multiplier * chi2_check);
-  // }
+  // Chi2 distance test
+  Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
+  Eigen::MatrixXd S = H * P * H.transpose() + R;
+  double chi2 = res.dot(S.llt().solve(res));
+  // Check against our threshold
+  if (chi2 > _vehicle_speed_chi2_multiplier * chi2_check) {
+    // PRINT_DEBUG(RED "UpdaterVehicle::update_speed_vector(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _vehicle_speed_chi2_multiplier * chi2_check);
+  } else {
+    // Chi2 check succeeded
+    // PRINT_DEBUG(GREEN "UpdaterVehicle::update_speed_vector(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _vehicle_speed_chi2_multiplier * chi2_check);
+  }
 
   // Finally perform the EKF update
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
@@ -130,21 +130,21 @@ void UpdaterVehicle::update_speed_x(std::shared_ptr<State> state, const ov_core:
   R << _sigma_speed_x_2;
 
   // Get our Chi2 threshohld
-  // double chi2_check = chi_squared_table[res.rows()];
+  double chi2_check = chi_squared_table[res.rows()];
 
-  // // Chi2 distance test
-  // Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
-  // Eigen::MatrixXd S = H * P * H.transpose() + R;
-  // double chi2 = res.dot(S.llt().solve(res));
-  // Check against our thrshold
-  // if (chi2 > _vehicle_speed_chi2_multiplier * chi2_check) {
-  //   PRINT_DEBUG(RED "UpdaterVehicle::update_speed_vector(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
-  //               _vehicle_speed_chi2_multiplier * chi2_check);
-  // } else {
-  //   // Chi2 check succeeded
-  //   PRINT_DEBUG(GREEN "UpdaterVehicle::update_speed_vector(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
-  //               _vehicle_speed_chi2_multiplier * chi2_check);
-  // }
+  // Chi2 distance test
+  Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
+  Eigen::MatrixXd S = H * P * H.transpose() + R;
+  double chi2 = res.dot(S.llt().solve(res));
+  // Check against our threshold
+  if (chi2 > _vehicle_speed_chi2_multiplier * chi2_check) {
+    // PRINT_DEBUG(RED "UpdaterVehicle::update_speed_vector(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _vehicle_speed_chi2_multiplier * chi2_check);
+  } else {
+    // Chi2 check succeeded
+    // PRINT_DEBUG(GREEN "UpdaterVehicle::update_speed_vector(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _vehicle_speed_chi2_multiplier * chi2_check);
+  }
 
   // Finally perform the EKF update
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
@@ -242,21 +242,21 @@ void UpdaterVehicle::update_steering(std::shared_ptr<State> state, const ov_core
   R << _sigma_steering_angle_2;
 
   // Get our Chi2 threshohld
-  // double chi2_check = chi_squared_table[res.rows()];
+  double chi2_check = chi_squared_table[res.rows()];
 
   // // Chi2 distance test
-  // Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
-  // Eigen::MatrixXd S = H * P * H.transpose() + R;
-  // double chi2 = res.dot(S.llt().solve(res));
+  Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
+  Eigen::MatrixXd S = H * P * H.transpose() + R;
+  double chi2 = res.dot(S.llt().solve(res));
   // Check against our threshold
-  // if (chi2 > _vehicle_steering_chi2_multiplier * chi2_check) {
-  //   PRINT_DEBUG(RED "UpdaterVehicle::update_speed_vector(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
-  //               _vehicle_steering_chi2_multiplier * chi2_check);
-  // } else {
-  //   // Chi2 check succeeded
-  //   PRINT_DEBUG(GREEN "UpdaterVehicle::update_speed_vector(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
-  //               _vehicle_steering_chi2_multiplier * chi2_check);
-  // }
+  if (chi2 > _vehicle_steering_chi2_multiplier * chi2_check) {
+    // PRINT_DEBUG(RED "UpdaterVehicle::update_speed_vector(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _vehicle_steering_chi2_multiplier * chi2_check);
+  } else {
+    // Chi2 check succeeded
+    // PRINT_DEBUG(GREEN "UpdaterVehicle::update_speed_vector(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _vehicle_steering_chi2_multiplier * chi2_check);
+  }
 
   // Finally perform the EKF update
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
@@ -431,11 +431,28 @@ void UpdaterVehicle::update_vehicle_preintegrated_single_track(std::shared_ptr<S
   // Take only x- and y-row
   H.block(1, 9, 2, 3) = (_R_ItoO * R_GtoI_last).block(0, 0, 2, 3);
 
+  // Get our Chi2 threshohld
+  double chi2_check = chi_squared_table[res.rows()];
+
+  // Chi2 distance test
+  Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
+  Eigen::MatrixXd S = H * P * H.transpose() + R;
+  double chi2 = res.dot(S.llt().solve(res));
+  // Check against our threshold
+  if (chi2 > _single_track_chi2_multiplier * chi2_check) {
+    // PRINT_DEBUG(RED "update_vehicle_preintegrated_single_track(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET, chi2,
+    //             _single_track_ch2_multiplier * chi2_check);
+  } else {
+    // Chi2 check succeeded
+    // PRINT_DEBUG(GREEN "update_vehicle_preintegrated_single_track(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n" RESET,
+    // chi2, _single_track_ch2_multiplier * chi2_check);
+  }
+
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
 }
 
-void UpdaterVehicle::update_vehicle_preintegrated_differential(std::shared_ptr<State> state, double last_cam_timestamp,
-                                                               double last_prop_time_offset) {
+void UpdaterVehicle::update_vehicle_preintegrated_differential_drive(std::shared_ptr<State> state, double last_cam_timestamp,
+                                                                     double last_prop_time_offset) {
 
   // Gather wheel speeds messages, asssume IMU and CAN are synchronized, so we still need to account for time offset between IMU and cam
   double time0 = last_cam_timestamp + last_prop_time_offset;
@@ -581,6 +598,23 @@ void UpdaterVehicle::update_vehicle_preintegrated_differential(std::shared_ptr<S
   // std::cout << "H" << std::endl << H << std::endl;
   // std::cout << "P_odom_final" << std::endl << P_odom << std::endl;
 
+  // Get our Chi2 threshohld
+  double chi2_check = chi_squared_table[res.rows()];
+
+  // Chi2 distance test
+  Eigen::MatrixXd P = StateHelper::get_marginal_covariance(state, Hx_order);
+  Eigen::MatrixXd S = H * P * H.transpose() + R;
+  double chi2 = res.dot(S.llt().solve(res));
+  // Check against our threshold
+  if (chi2 > _differential_drive_chi2_multiplier * chi2_check) {
+    // PRINT_DEBUG(RED "update_vehicle_preintegrated_differential_drive(): chi2 check failed chi2 %.9f  multiplied chi2_check %.9f\n" RESET,
+    //             chi2, _differential_drive_chi2_multiplier * chi2_check);
+  } else {
+    // Chi2 check succeeded
+    // PRINT_DEBUG(GREEN "update_vehicle_preintegrated_differential_drive(): chi2 check passed chi2 %.9f  multiplied chi2_check %.9f\n"
+    // RESET, chi2, _differential_drive_chi2_multiplier * chi2_check);
+  }
+
   StateHelper::EKFUpdate(state, Hx_order, H, res, R);
 }
 
@@ -678,11 +712,11 @@ std::vector<ov_core::AckermannDriveData> UpdaterVehicle::select_ackermann_drive_
   }
 
   // Some debug output
-  PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
-  for (size_t i = 0; i < ackermann_drive_data_preintegration.size(); i++) {
-    PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): ackermann_drive_data_preintegration #%d t = %.9f\n" RESET, (int)i,
-                ackermann_drive_data_preintegration[i].timestamp);
-  }
+  // PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
+  // for (size_t i = 0; i < ackermann_drive_data_preintegration.size(); i++) {
+  //   PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_speed_readings(): ackermann_drive_data_preintegration #%d t = %.9f\n" RESET, (int)i,
+  //               ackermann_drive_data_preintegration[i].timestamp);
+  // }
 
   // Check that we have at least one measurement to propagate with
   if (ackermann_drive_data_preintegration.empty()) {
@@ -836,11 +870,11 @@ std::vector<ov_core::WheelSpeedsData> UpdaterVehicle::select_wheel_speeds_readin
   }
 
   // Some debug output
-  PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
-  for (size_t i = 0; i < wheel_speeds_data_preintegration.size(); i++) {
-    PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): wheel_speeds_data_preintegration #%d t = %.9f\n" RESET, (int)i,
-                wheel_speeds_data_preintegration[i].timestamp);
-  }
+  // PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): time0 = %.9f time1 = %.9f\n" RESET, time0, time1);
+  // for (size_t i = 0; i < wheel_speeds_data_preintegration.size(); i++) {
+  //   PRINT_DEBUG(MAGENTA "UpdaterVehicle::select_wheel_speeds_readings(): wheel_speeds_data_preintegration #%d t = %.9f\n" RESET, (int)i,
+  //               wheel_speeds_data_preintegration[i].timestamp);
+  // }
 
   // Check that we have at least one measurement to propagate with
   if (wheel_speeds_data_preintegration.empty()) {
