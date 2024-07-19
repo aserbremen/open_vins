@@ -45,14 +45,14 @@ In another terminal a rosbag has to be played: <code>ros2 bag play aros2bag.db3<
 The following image display the different updating schemes for vehicle-related measurements. Speed and steering measurements can be used whenever the respective measurement arrives. The time scheme is displayed in the center column of the image. Furthermore, speed and steering measurements in conjunction as well as wheel speed measurements can be used to perform a preintegrated odometry update, much like the visual update of the Multi-State Constraint Kalman Filter. This updating scheme is represented on the right column.
 
 <p align="center">
-  <img  src="docs/readme_images/update_flowchart.svg" title="Different updating schemes" width="700px">
+  <img  src="docs/readme_images/update_flowchart.png" title="Different updating schemes" width="700px">
 </p>
 
 ### Single-track and differential drive model
 Two kinematic motion models are applied: the single-track model and the differential drive model. While both can be used for cars, the first one is better suited and reports lower odometry errors in our experiments. The latter can be used for wheeled robots which do not supply steering angle information. 
 
 <p align="center">
-  <img  src="docs/readme_images/single_track_vs_differential_drive.svg" title="Single-track and differential drive model" width="700px">
+  <img  src="docs/readme_images/single_track_vs_differential_drive.png" title="Single-track and differential drive model" width="700px">
 </p>
 
 
