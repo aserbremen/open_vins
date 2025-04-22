@@ -8,17 +8,18 @@ authors:
   - family-names: Schill
     given-names: Kerstin
 title: "Visual-Inertial Odometry aided by Speed and Steering Angle Measurements"
-conference: 
+conference:
   name: "IEEE 25th International Conference on Information Fusion (Fusion)"
-year: 2022
-address: "Linköping, Sweden"
+  year: 2022
+  address: "Linköping, Sweden"
 keywords: 
   - "Visual-Inertial Odometry"
   - "Sensor Fusion"
   - "Steering Angle"
   - "Speed"
   - "OpenVINS"
-doi: "https://doi.org/10.23919/FUSION49751.2022.9841243"
+doi: "10.23919/FUSION49751.2022.9841243"
+repository-code: "https://github.com/aserbremen/open_vins"
 preferred-citation: 
   type: conference-paper
   authors:
@@ -28,10 +29,13 @@ preferred-citation:
       given-names: Joachim
     - family-names: Schill
       given-names: Kerstin
+  title: "Visual-Inertial Odometry aided by Speed and Steering Angle Measurements"
   conference:
     name: "IEEE 25th International Conference on Information Fusion (Fusion)"
-  year: 2022
-  doi: "https://doi.org/10.23919/FUSION49751.2022.9841243"
+    year: 2022
+    address: "Linköping, Sweden"
+  doi: "10.23919/FUSION49751.2022.9841243"
+  url: "https://github.com/aserbremen/open_vins"
   bibtex: |
     @Conference{Serov2022Fusion,
       Title      = {Visual-Inertial Odometry aided by Speed and Steering Angle Measurements},
@@ -39,6 +43,6 @@ preferred-citation:
       Booktitle  = {IEEE 25th International Conference on Information Fusion (Fusion)},
       Year       = {2022},
       Address    = {Linköping, Sweden},
-      Url        = {\url{https://github.com/aserbremen/open_vins}},
-      Doi        = {https://doi.org/10.23919/FUSION49751.2022.9841243},
+      Url        = {https://github.com/aserbremen/open_vins},
+      Doi        = {10.23919/FUSION49751.2022.9841243},
     }
