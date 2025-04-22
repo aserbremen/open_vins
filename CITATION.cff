@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as follows:"
+authors:
+  - family-names: Serov
+    given-names: Andreas
+  - family-names: Clemens
+    given-names: Joachim
+  - family-names: Schill
+    given-names: Kerstin
+title: "Visual-Inertial Odometry aided by Speed and Steering Angle Measurements"
+conference: 
+  name: "IEEE 25th International Conference on Information Fusion (Fusion)"
+year: 2022
+address: "Linköping, Sweden"
+keywords: 
+  - "Visual-Inertial Odometry"
+  - "Sensor Fusion"
+  - "Steering Angle"
+  - "Speed"
+  - "OpenVINS"
+doi: "https://doi.org/10.23919/FUSION49751.2022.9841243"
+preferred-citation: 
+  type: conference-paper
+  authors:
+    - family-names: Serov
+      given-names: Andreas
+    - family-names: Clemens
+      given-names: Joachim
+    - family-names: Schill
+      given-names: Kerstin
+  conference:
+    name: "IEEE 25th International Conference on Information Fusion (Fusion)"
+  year: 2022
+  doi: "https://doi.org/10.23919/FUSION49751.2022.9841243"
+  bibtex: |
+    @Conference{Serov2022Fusion,
+      Title      = {Visual-Inertial Odometry aided by Speed and Steering Angle Measurements},
+      Author     = {Andreas Serov and Joachim Clemens and Kerstin Schill},
+      Booktitle  = {IEEE 25th International Conference on Information Fusion (Fusion)},
+      Year       = {2022},
+      Address    = {Linköping, Sweden},
+      Url        = {\url{https://github.com/aserbremen/open_vins}},
+      Doi        = {https://doi.org/10.23919/FUSION49751.2022.9841243},
+    }

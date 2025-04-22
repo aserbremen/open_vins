@@ -58,13 +58,13 @@ Two kinematic motion models are applied: the single-track model and the differen
 
 In the following table all updating methods and their corresponding `vehicle_update_mode`, legend entry for subsequent plots, and applied motion models are summarized: 
 
-| vehicle_update_mode | legend | Update frequency | Motion model | 
-| :------------ | :--------- | :-------------: | :-------------: |
-| VEHICLE_UPDATE_NONE | ov | N/A | N/A | 
-| VEHICLE_UPDATE_SPEED_PROPAGATE | ov_vs | CAN sensor | N/A |
-| VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE | ov_vs+sa | CAN sensor | single-track |
-| VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK | ov_single-track | camera ensor | single-track |
-| VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL | ov_diff-drive | camera sensor | differential drive |
+| vehicle_update_mode                         | legend          | Update frequency |    Motion model    |
+| :------------------------------------------ | :-------------- | :--------------: | :----------------: |
+| VEHICLE_UPDATE_NONE                         | ov              |       N/A        |        N/A         |
+| VEHICLE_UPDATE_SPEED_PROPAGATE              | ov_vs           |    CAN sensor    |        N/A         |
+| VEHICLE_UPDATE_SPEED_AND_STEERING_PROPAGATE | ov_vs+sa        |    CAN sensor    |    single-track    |
+| VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK   | ov_single-track |   camera ensor   |    single-track    |
+| VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL   | ov_diff-drive   |  camera sensor   | differential drive |
 
 
 ### Results
@@ -108,7 +108,8 @@ following:
   Booktitle  = {Proc. of the IEEE International Conference on Robotics and Automation},
   Year       = {2020},
   Address    = {Paris, France},
-  Url        = {\url{https://github.com/rpng/open_vins}}
+  Url        = {\url{https://github.com/rpng/open_vins}},
+  Doi        = {https://doi.org/10.23919/FUSION49751.2022.9841243,
 }
 ```
 
